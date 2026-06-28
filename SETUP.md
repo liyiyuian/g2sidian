@@ -47,7 +47,7 @@ curl -s -H "Authorization: Bearer TOKEN" localhost:8793/api/vaults  # your vault
 ## 2. Install the glasses app
 - Sideload for testing: `cd glasses && npm install && npm run dev`, then
   `npx @evenrealities/evenhub-cli@latest qr --url http://<lan-ip>:5173` → in the Even app tap
-  **Scan QR** (developer section). Or install the packed **`glasses/G2sidian-0.2.1.ehpk`** as a
+  **Scan QR** (developer section). Or install the packed **`glasses/G2sidian-0.2.2.ehpk`** as a
   Private build at hub.evenrealities.com → phone **Me → Apps → Private builds → Install**.
 
 ## 3. Connect & pick your vault
