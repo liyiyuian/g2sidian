@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0e1814"/>
+      <stop offset="1" stop-color="#070b09"/>
+    </linearGradient>
+    <linearGradient id="gem" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#46f594"/>
+      <stop offset="1" stop-color="#12a85c"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- glasses lens / HUD viewport -->
+  <circle cx="256" cy="256" r="176" fill="none" stroke="#16c46a" stroke-opacity="0.22" stroke-width="10"/>
+  <!-- Obsidian-style faceted crystal -->
+  <g transform="translate(256,256)">
+    <path d="M0,-162 L112,-70 L78,152 L-78,152 L-112,-70 Z" fill="url(#gem)"/>
+    <path d="M0,-162 L-112,-70 L-78,152 Z" fill="#08110b" fill-opacity="0.16"/>
+    <path d="M0,-162 L0,152 M-112,-70 L112,-70" stroke="#08110b" stroke-opacity="0.5" stroke-width="7" fill="none"/>
+    <path d="M0,-162 L78,152 M0,-162 L-78,152" stroke="#08110b" stroke-opacity="0.32" stroke-width="5" fill="none"/>
+  </g>
+</svg>

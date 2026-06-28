@@ -73,7 +73,8 @@ capture; if you leave voice disabled, no microphone audio is used and you type o
 
 PRIVACY POLICY
 --------------
-See privacy.txt (host it somewhere linkable). In short: G2sidian is self-hosted; the
+Full policy: https://raw.githubusercontent.com/liyiyuian/g2sidian/main/store-assets/privacy.txt
+In short: G2sidian is self-hosted; the
 developer operates no server and collects nothing. Your notes stay on your own machine and
 flow only between the glasses app and your own backend over your own Tailscale network. No
 accounts, no analytics. Backend URL/token/vault choice are stored only on your phone. Voice

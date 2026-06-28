@@ -51,4 +51,4 @@ CHANGES
 If this policy changes, the updated text will accompany the app listing.
 
 CONTACT
-Questions about privacy: <your contact email>.
+Questions about privacy: open an issue at https://github.com/liyiyuian/g2sidian/issues.

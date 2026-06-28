@@ -5,7 +5,8 @@ Copy-and-paste materials for the Even Hub listing.
 - **listing.txt** — full listing: name, tagline, short + long description, category, permission
   justifications, privacy summary, terms.
 - **tester-quickstart.txt** — ≤1000 chars; doubles as the store **Description** for beta/tester builds.
-- **privacy.txt** — privacy policy (host it somewhere linkable; fill in `<your contact email>`).
+- **privacy.txt** — privacy policy (complete; contact = the repo's GitHub issues). Linkable at
+  `https://raw.githubusercontent.com/liyiyuian/g2sidian/main/store-assets/privacy.txt`.
 - **screenshots/** — 576×288 glasses captures, **rendered from a fake demo vault ("Notebook"),
   not real notes**:
   - `1-browser.png` — vault home: folder tree + Quick capture + Search rows

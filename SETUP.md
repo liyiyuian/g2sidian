@@ -5,22 +5,56 @@ leave your machine — the glasses talk to a tiny backend on your computer over 
 network** (token-required, loopback-bound, tailnet-only HTTPS).
 
 ## What you need
-- The computer that holds your Obsidian vault(s), with **Python 3.10+** and **Tailscale** (logged in).
+- The computer that holds your Obsidian vault(s), with **Python 3.10+**, **Node.js/npm**, and
+  **Tailscale** (installed + logged in).
 - The **Even** phone app + your G2 glasses.
 - (Optional) an **OpenAI API key** for voice capture (Whisper). Without it you type notes on the phone.
 
-## 1. Stand up the backend (one command)
+## 1. One command — sets up the backend AND builds your glasses app
 ```bash
-curl -fsSL https://raw.githubusercontent.com/liyiyuian/g2sidian/main/install.sh | bash
+git clone https://github.com/liyiyuian/g2sidian && cd g2sidian && ./install.sh
 ```
-It auto-discovers your Obsidian vaults (any folder containing `.obsidian/`), generates a token,
-writes `~/.config/g2sidian.env`, installs a `systemd --user` service, exposes it on your tailnet at
-`https://<host>.<tailnet>.ts.net:8445`, and prints a **paste-config** line (and a QR) for the app.
+This single command:
+- auto-discovers your Obsidian vaults (any folder containing `.obsidian/`) and generates an access token,
+- writes `~/.config/g2sidian.env` (chmod 600), installs a `systemd --user` service, and exposes it
+  tailnet-only at `https://<host>.<tailnet>.ts.net:8445` (`tailscale serve`),
+- **builds `glasses/G2sidian-<version>.ehpk`** with your backend's address baked into the app whitelist, and
+- prints a `g2sidian:…` **config line** (and a QR) for the phone.
 
-> Running from this repo instead of curl:
-> `G2SIDIAN_SRC=$(pwd) ./install.sh`  (copies `g2sidian_api.py` + `md_flatten.py` from here)
+> It will ask once for an optional OpenAI key (press Enter to skip), and use `sudo` once for
+> `tailscale serve`. Re-run it any time to update — it reuses your existing token.
 
-**Manual alternative** — create `~/.config/g2sidian.env` (chmod 600):
+## 2. Install the glasses app
+`install.sh` already built your `.ehpk`. Install it one of two ways:
+- **QR sideload (quickest):** `cd glasses && npx @evenrealities/evenhub-cli@latest qr --url file://$(pwd)/G2sidian-*.ehpk`
+  (or run `npm run dev` and QR that) → in the Even app's developer section tap **Scan QR**.
+- **Persistent (Hub Private build):** upload `glasses/G2sidian-*.ehpk` at
+  [hub.evenrealities.com](https://hub.evenrealities.com) → phone **Me → Apps → Private builds → Install**.
+
+## 3. Connect & pick your vault
+Open **G2sidian** on the phone → **Setup** → **Paste config** → paste the line `install.sh` printed
+→ **Save**. Once connected, a **Vault** picker appears — **tap the vault** you want the glasses to open
+into (switch any time, from the phone). It persists across reinstalls. Status shows
+"● Connected — N vaults · voice on/off".
+
+## 4. Use it (3 gestures: tap / double-tap / swipe)
+The glasses open straight into your chosen vault's folder tree.
+- **Browser** → tap a folder to descend, a note to open; row 0 = 🎤 **Quick capture** (speak/type →
+  today's daily note), row 1 = 🔍 **Search**; double-tap = up a folder; swipe = scroll.
+- **Reader** → swipe to scroll; **tap = voice-append to this note**; double-tap = back. `tasks` /
+  `dataview` query blocks (incl. common `dataviewjs` task dashboards) render as live results.
+- **Capture / Search** → speak then tap (or type on the phone); double-tap = cancel/back.
+- At the vault's **root** folder, double-tap = exit the app.
+
+---
+
+## Advanced / manual
+
+**Backend only** (no glasses build — e.g. a headless box): `curl -fsSL
+https://raw.githubusercontent.com/liyiyuian/g2sidian/main/install.sh | bash` downloads the three backend
+files (`g2sidian_api.py`, `md_flatten.py`, `vault_query.py`), sets up the service, and serves it.
+
+**Fully manual** — create `~/.config/g2sidian.env` (chmod 600):
 ```
 G2SIDIAN_TOKEN=<a long random string>
 G2SIDIAN_BIND=127.0.0.1
@@ -32,43 +66,16 @@ G2SIDIAN_DAILY_FORMAT=%Y-%m-%d
 # G2SIDIAN_INBOX_PATH=Inbox.md       # used when G2SIDIAN_CAPTURE_MODE=inbox
 # OPENAI_API_KEY=sk-...              # enables voice capture (or G2SIDIAN_OPENAI_KEY_PATH=~/path/to/keyfile)
 ```
-then run it as a service and expose it:
-```bash
-python3 g2sidian_api.py                       # foreground test
-sudo tailscale serve --bg --https=8445 8793   # tailnet HTTPS mount
-```
+then `python3 g2sidian_api.py` (or run as a service) and `sudo tailscale serve --bg --https=8445 8793`.
+Build the app by hand: `cp glasses/app.json.example glasses/app.json`, set your origin
+(`https://<host>.<tailnet>.ts.net:8445`) in `permissions[network].whitelist`, then
+`cd glasses && npm install && npm run build && npx @evenrealities/evenhub-cli@latest pack app.json dist -o G2sidian.ehpk`.
 
-Verify (replace TOKEN):
-```bash
-curl -s localhost:8793/api/health                                   # {"ok":true,...}
-curl -s -H "Authorization: Bearer TOKEN" localhost:8793/api/vaults  # your vault list
-```
-
-## 2. Install the glasses app
-- Sideload for testing: `cd glasses && npm install && npm run dev`, then
-  `npx @evenrealities/evenhub-cli@latest qr --url http://<lan-ip>:5173` → in the Even app tap
-  **Scan QR** (developer section). Or install the packed **`glasses/G2sidian-0.2.2.ehpk`** as a
-  Private build at hub.evenrealities.com → phone **Me → Apps → Private builds → Install**.
-
-## 3. Connect & pick your vault
-Open **G2sidian** on the phone → **Setup** → **Paste config** → paste the line install.sh printed
-(or enter the Backend URL `https://<host>.<tailnet>.ts.net:8445` + token by hand) → **Save**. Once
-connected, a **Vault** picker appears — **tap the vault you want the glasses to open into** (you can
-switch any time, here on the phone). Everything persists across reinstalls. The status line shows
-"● Connected — N vaults · voice on/off".
-
-## 4. Use it (3 gestures: tap / double-tap / swipe)
-The glasses open straight into your chosen vault's folder tree.
-- **Browser** → tap a folder to descend, a note to open; row 0 = 🎤 **Quick capture** (speak/type →
-  today's daily note), row 1 = 🔍 **Search**; double-tap = up a folder; swipe = scroll.
-- **Reader** → swipe to scroll; **tap = voice-append to this note**; double-tap = back.
-- **Capture/Search** → speak then tap (or type on the phone); double-tap = cancel/back.
-- At the vault's **root** folder, double-tap = exit the app. (Switch vaults from the phone Setup.)
+Verify the backend: `curl -s localhost:8793/api/health` → `{"ok":true,...}`.
 
 ## Notes & safety
-- The backend reads/writes your notes — it is **token-required + loopback + tailnet-only**. Never
-  bind `0.0.0.0`, never share the token, never commit `~/.config/g2sidian.env`.
-- v1 writes are **append-only** and atomic (temp+rename), with an mtime conflict check and an
-  out-of-vault backup under `~/.local/state/g2sidian/backups/`. If you have the note open in
-  Obsidian, the appended line may not show until you switch notes (Obsidian doesn't always reload
-  an open file) — and to be safe, don't append to a note you're actively editing with unsaved changes.
+- The backend reads/writes your notes — it is **token-required + loopback + tailnet-only**. Never bind
+  `0.0.0.0`, never share the token, never commit `~/.config/g2sidian.env`.
+- Writes are **append-only** and atomic (temp+rename), with an mtime conflict check and an out-of-vault
+  backup under `~/.local/state/g2sidian/backups/`. If a note is open in Obsidian, an appended line may
+  not show until you switch notes — avoid appending to a note you're actively editing with unsaved changes.
