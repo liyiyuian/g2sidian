@@ -1,0 +1,25 @@
+# Secrets / personal info — NEVER commit
+glasses/.env
+glasses/.env.*
+*.env
+!*.env.example
+# your real app.json bakes YOUR backend's Tailscale domain into the whitelist — keep it local.
+# the repo ships glasses/app.json.example; copy it to glasses/app.json and set your own domain.
+glasses/app.json
+
+# Build artifacts (distribute the public .ehpk via the Even Hub / GitHub Releases;
+# a personal .ehpk would contain your token — never commit either)
+*.ehpk
+glasses/dist/
+glasses/dist-*/
+glasses/node_modules/
+
+# Python
+**/__pycache__/
+*.pyc
+
+# Internal / dev notes — not part of the public repo
+CLAUDE.md
+
+# OS
+.DS_Store
