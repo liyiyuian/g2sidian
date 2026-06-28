@@ -42,8 +42,10 @@ ok "python3 $PYV"
 command -v tailscale >/dev/null && ok "tailscale" || die "tailscale not found. Install + log in: https://tailscale.com/download"
 
 # 2) download backend --------------------------------------------------------
+# Run from a clone? use the local files automatically (no re-download).
+[ -z "${G2SIDIAN_SRC:-}" ] && [ -f g2sidian_api.py ] && G2SIDIAN_SRC="$(pwd)"
 mkdir -p "$INSTALL_DIR"
-for f in g2sidian_api.py md_flatten.py; do
+for f in g2sidian_api.py md_flatten.py vault_query.py; do
   if [ -n "${G2SIDIAN_SRC:-}" ]; then cp "$G2SIDIAN_SRC/$f" "$INSTALL_DIR/$f"
   else curl -fsSL "$RAW/$f" -o "$INSTALL_DIR/$f" || die "could not download $f from $RAW"; fi
 done
@@ -127,15 +129,46 @@ run systemctl --user enable --now g2sidian.service
 run sudo tailscale set --operator="$USER"
 run sudo tailscale serve --bg --https="$HTTPS_PORT" "$PORT"
 
-# 9) summary + paste-config --------------------------------------------------
+# 9) resolve the tailnet URL -------------------------------------------------
 DNS=$(tailscale status --json 2>/dev/null | python3 -c 'import sys,json;print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))' 2>/dev/null || true)
 URL="https://${DNS:-<your-tailscale-host>.ts.net}:${HTTPS_PORT}"
+
+# 10) build the glasses .ehpk with YOUR domain baked into the whitelist ------
+#     (only when run from a clone with npm available — the curl|bash flow skips it)
+EHPK=""
+if [ -d glasses ] && command -v npm >/dev/null && [ -n "$DNS" ]; then
+  c "Building the glasses app — baking your backend ($URL) into the whitelist…"
+  if [ "$DRY" = 1 ]; then
+    echo "  [dry-run] cp app.json.example→app.json, inject whitelist, npm install && npm run build, pack .ehpk"
+  else
+    ( cd glasses
+      [ -f app.json ] || cp app.json.example app.json
+      python3 - "$URL" <<'PY'
+import json, sys
+d = json.load(open("app.json"))
+for perm in d.get("permissions", []):
+    if perm.get("name") == "network":
+        perm["whitelist"] = [sys.argv[1]]
+json.dump(d, open("app.json", "w"), indent=2)
+PY
+      npm install --silent >/dev/null 2>&1 && npm run build >/dev/null 2>&1 || exit 1
+      VER=$(python3 -c 'import json;print(json.load(open("app.json"))["version"])')
+      npx --yes @evenrealities/evenhub-cli@latest pack app.json dist -o "G2sidian-$VER.ehpk" >/dev/null 2>&1
+    ) && EHPK="glasses/G2sidian-$(python3 -c 'import json;print(json.load(open("glasses/app.json"))["version"])').ehpk"
+    [ -n "$EHPK" ] && [ -f "$EHPK" ] && ok "built $EHPK" || { warn "glasses build hit a snag — build it manually (see README)."; EHPK=""; }
+  fi
+else
+  warn "skipped the glasses .ehpk build (need a clone + npm + a Tailscale domain). See the README to build it."
+fi
+
+# 11) summary + paste-config -------------------------------------------------
 BLOB="g2sidian:$(python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(json.dumps({"base":sys.argv[1],"token":sys.argv[2]}).encode()).decode())' "$URL" "$TOKEN")"
 
 echo
 ok "G2sidian backend is up."
 c  "Backend URL : $URL"
 c  "Token       : $TOKEN"
+[ -n "$EHPK" ] && c "Glasses app : $EHPK   (install via QR sideload, or upload as a Hub Private build)"
 echo
 c  "On your phone: open G2sidian → Setup → 'Paste config'. Paste this line:"
 echo "  $BLOB"

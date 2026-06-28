@@ -1,55 +1,86 @@
 # G2sidian
 
-View — and hands-free voice-capture into — your **Obsidian** notes on **Even Realities G2** smart
-glasses. Your vaults stay on your own machine; the glasses reach a tiny local backend over your
-**Tailscale** network (token-required, tailnet-only).
+**Your Obsidian vault on your glasses — self-hosted, private, hands-free.**
 
-- **Browse** every vault's folder tree, **search** by filename/tag/full-text, and **read** notes
-  rendered to clean lines (Obsidian markdown flattened: wikilinks, callouts, tasks, tables…).
-- **Tasks & Dataview** — `tasks` and `dataview` (LIST/TASK) query blocks are evaluated server-side
-  and rendered as live results (e.g. a "what's due today" view). Common **task dashboards built with
-  `dataviewjs`** render too (the embedded Tasks query is extracted — no JavaScript is executed);
-  anything outside the supported subset shows a placeholder.
-- **Quick-capture** a thought by voice straight into today's daily note (or an inbox).
-- **Append** to the note you're reading by voice — or type on the phone when you'd rather.
+View and voice-capture your [Obsidian](https://obsidian.md) notes on
+[Even Realities G2](https://www.evenrealities.com/) smart glasses. A tiny backend runs on **your own
+computer**, reads your vault files directly, and is reachable **only over your own Tailscale network** —
+no central server, no accounts, no analytics. Your notes never leave your machine.
 
-Pick which vault to open on the phone. 3 gestures: **tap** = open / capture, **double-tap** = back, **swipe** = scroll.
+<p align="center">
+  <img src="store-assets/screenshots/demo.gif" width="500" alt="G2sidian demo — browser, reader, tasks, voice capture">
+</p>
+
+## What it looks like
+
+| Open straight into your vault | Read a note, flattened to clean lines |
+|:---:|:---:|
+| ![Browser](store-assets/screenshots/1-browser.png) | ![Reader](store-assets/screenshots/2-reader.png) |
+| **Tasks & Dataview rendered live** | **Hands-free voice capture** |
+| ![Tasks](store-assets/screenshots/3-tasks.png) | ![Capture](store-assets/screenshots/4-capture.png) |
+
+<sub>Screenshots use a demo vault — not real notes.</sub>
+
+## Features
+
+- **Glance & read** — pick a vault on your phone; the glasses open straight into it. Browse the folder
+  tree and read notes rendered to clean lines (Obsidian markdown flattened: wikilinks, callouts, tasks,
+  tables, headings).
+- **Live Tasks & Dataview** — `tasks` and `dataview` (LIST/TASK) query blocks render as live results —
+  great for a "what's due today" view. Common **task dashboards built with `dataviewjs`** render too
+  (the embedded query is extracted; no JavaScript is executed). Anything outside the supported subset
+  shows a placeholder rather than a wrong answer.
+- **Search** — by full text, filename, or tag.
+- **Voice capture** — speak a thought into today's daily note (or an inbox), or append to the note
+  you're reading — hands-free. No voice key? Type on the phone instead.
+- **Private by design** — loopback-bound, token-required, tailnet-only. The developer runs no server
+  and collects nothing.
+
+3 gestures: **tap** = open / capture · **double-tap** = back · **swipe** = scroll.
+
+## Quick start (one command)
+
+You self-host G2sidian — your notes stay on your machine. You need **Python 3.10+**, **Node.js/npm**,
+and **Tailscale** (logged in).
+
+```bash
+git clone https://github.com/liyiyuian/g2sidian && cd g2sidian && ./install.sh
+```
+
+That one command:
+1. auto-discovers your Obsidian vaults and generates an access token,
+2. installs a `systemd --user` service and exposes it tailnet-only over HTTPS (`tailscale serve`),
+3. **builds your glasses `.ehpk`** with your backend's address baked into the manifest whitelist, and
+4. prints a `g2sidian:…` config line (and a QR) for the phone.
+
+Then:
+- **Install the app:** sideload the printed `.ehpk` via `npx @evenrealities/evenhub-cli@latest qr …`,
+  or upload it as a **Private build** at [hub.evenrealities.com](https://hub.evenrealities.com).
+- **Connect:** open **G2sidian → Setup → Paste config**, paste the line, and pick a vault.
+
+More detail (and a fully manual path): **[SETUP.md](SETUP.md)**.
+
+> **Note:** G2sidian is inherently self-hosted — Even's network whitelist is exact-origin, so each
+> person builds their own `.ehpk` pointed at their own backend. There is no one-click public install;
+> this repo *is* the distribution.
 
 ## How it works
-- **Backend** (`g2sidian_api.py` + `md_flatten.py` + `vault_query.py`) — Python **stdlib** HTTP
-  control plane on your computer. Reads/writes the vault `.md` files directly (no Obsidian process or
-  plugin needed), exposes a token-auth JSON API on `127.0.0.1:8793`, published tailnet-only via
-  `tailscale serve`. Writes are append-only, atomic, conflict-checked, and byte-preserving.
-- **Glasses app** (`glasses/`) — Vite + React + `even-toolkit` Even Hub plugin. Per-user backend
-  URL + token entered once in a phone Setup screen; no secrets baked into the build.
 
-## Run your own backend
-Your notes never leave your machine — you host the backend yourself, reachable only over your own
-Tailscale network. Needs **Python 3.10+** and **Tailscale** (logged in).
+- **Backend** (`g2sidian_api.py` + `md_flatten.py` + `vault_query.py`) — Python **stdlib** HTTP control
+  plane on your computer. Reads/writes the vault `.md` files directly (no Obsidian process or plugin
+  needed), exposes a token-auth JSON API on `127.0.0.1:8793`, published tailnet-only via `tailscale
+  serve`. Writes are append-only, atomic, conflict-checked, and byte-preserving (frontmatter untouched).
+- **Glasses app** (`glasses/`) — Vite + React + [`even-toolkit`](https://www.npmjs.com/package/even-toolkit)
+  Even Hub plugin. Per-user backend URL + token entered once in a phone Setup screen; no secrets baked in.
 
-1. **Backend:** clone this repo, then run the installer (it auto-discovers your Obsidian vaults,
-   generates a token, installs a `systemd --user` service, and serves it over your tailnet):
-   ```bash
-   cd g2sidian && G2SIDIAN_SRC=$(pwd) ./install.sh
-   ```
-   It prints a `g2sidian:…` config line (and a QR) for the phone. Full details + the manual path:
-   **[SETUP.md](SETUP.md)**.
-2. **Build the glasses app** — Even enforces an *exact-origin* network whitelist, so put **your**
-   backend's address in the manifest:
-   ```bash
-   cp glasses/app.json.example glasses/app.json
-   # edit glasses/app.json → permissions[network].whitelist to your Tailscale HTTPS origin,
-   #   e.g. "https://<host>.<tailnet>.ts.net:8445"  (exact origin incl. port; wildcards are rejected)
-   cd glasses && npm install && npm run build
-   npx @evenrealities/evenhub-cli@latest pack app.json dist -o G2sidian.ehpk
-   ```
-3. **Install** `G2sidian.ehpk` via [hub.evenrealities.com](https://hub.evenrealities.com) (Private
-   build) or QR-sideload, then open the app → **Setup** → paste the config line → pick a vault.
+## Privacy & security
 
-## Security
 The backend reads and writes your notes — treat it as a sensitive surface. It **requires a token**,
-binds **loopback only**, and is reachable **only over your tailnet**. Never bind `0.0.0.0`, never
-share the token, never commit `~/.config/g2sidian.env`.
+binds **loopback only**, and is reachable **only over your tailnet**. Never bind `0.0.0.0`, never share
+the token, never commit `~/.config/g2sidian.env`. Voice transcription is optional and only used if you
+add your own OpenAI Whisper key; if enabled, dictated audio is sent to OpenAI to transcribe (see
+[store-assets/privacy.txt](store-assets/privacy.txt)).
 
 ## License
-MIT — see [LICENSE](LICENSE).
+
+[MIT](LICENSE).
