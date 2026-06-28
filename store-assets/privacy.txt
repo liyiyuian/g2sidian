@@ -1,0 +1,54 @@
+G2sidian — Privacy Policy
+Last updated: 2026-06-28
+
+Summary: G2sidian is self-hosted and private. The developer operates no server and collects no
+data about you. Your Obsidian notes stay on your own machine.
+
+WHAT G2SIDIAN IS
+G2sidian is a smart-glasses app for viewing and voice-capturing your Obsidian notes. A small
+backend that you run on your own computer reads your Obsidian vault files directly. The glasses app
+reaches this backend only over your own Tailscale network. Access is token-required, and the backend
+is bound to loopback and exposed only within your tailnet.
+
+NO CENTRAL SERVER
+There is no central or third-party server operated by the developer. Your notes are not uploaded to
+the developer, synced to any cloud, or shared with anyone. There are no user accounts and no
+analytics, telemetry, or tracking.
+
+WHAT DATA IS PROCESSED AND WHERE
+Your vault contents (folders, note text, search results, and Obsidian Tasks and Dataview query
+results) are read by your own backend and displayed on your glasses. Notes you capture or append are
+written back to files in your own vault by your own backend. This data flows only between the glasses
+app and your own backend over your own network.
+
+LOCAL STORAGE
+Your backend URL, access token, chosen vault, and preferences are stored only on your own phone.
+
+OPTIONAL VOICE TRANSCRIPTION (THIRD-PARTY DISCLOSURE)
+Voice capture is off unless you enable it by configuring an OpenAI Whisper API key on your own
+backend. If voice is enabled and you dictate, the recorded AUDIO of your dictation is sent from your
+backend to OpenAI for transcription, using your own API key, and the returned text is written into
+your note. In that case your dictated audio is processed by OpenAI under OpenAI's own terms and
+privacy policy. If you do not configure a Whisper API key, voice transcription is disabled, no audio
+is recorded or sent anywhere, and you type your notes on the phone instead — in which case nothing is
+sent anywhere except your own backend.
+
+PERMISSIONS
+The app requests "network" (to connect to your own backend, and only if voice is enabled, to reach
+OpenAI for transcription) and "g2-microphone" (for optional voice capture and append, only when you
+start a voice capture).
+
+DATA RETENTION AND DELETION
+The developer stores none of your data. Your notes live in your own Obsidian vault on your own
+machine; you control them entirely. Any OpenAI API key you provide is stored on your own backend, not
+by the developer. Removing your OpenAI key disables all audio transmission; uninstalling the app and
+stopping the backend ends all access.
+
+CHILDREN
+G2sidian is a personal productivity tool and is not directed at children.
+
+CHANGES
+If this policy changes, the updated text will accompany the app listing.
+
+CONTACT
+Questions about privacy: <your contact email>.

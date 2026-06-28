@@ -1,0 +1,14 @@
+G2sidian puts your Obsidian notes where you can glance at them on Even G2 glasses, hands-free.
+
+Pick a vault once on your phone; your glasses open straight into it - no phone in hand.
+
+- Glance: Obsidian Tasks and Dataview (LIST/TASK) queries - and common dataviewjs task dashboards - show as live results.
+- Read: notes flattened to clean lines (wikilinks, callouts, tasks, tables, headings).
+- Search: by full text, filename, or tag.
+- Voice capture: speak into today's daily note or an inbox; while reading, speak to append. No key? Type on the phone.
+
+Gestures: tap = open/capture, double-tap = back, swipe = scroll.
+
+Private: a small backend runs on YOUR own computer, reads your vault files directly, reachable only over your Tailscale network (token-required, loopback-bound). No central server, no accounts, no analytics.
+
+Voice is optional and needs your own OpenAI Whisper API key; if enabled, dictated audio is sent to OpenAI to transcribe. Not affiliated with Obsidian.

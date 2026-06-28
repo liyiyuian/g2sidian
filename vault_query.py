@@ -12,7 +12,7 @@ stdlib only. `today` is read fresh per call.
 """
 import os
 import re
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 import md_flatten  # for inline-markup cleaning of rendered task descriptions (no cycle: md_flatten imports neither)
 
@@ -176,21 +176,27 @@ def _strip_parens(s):
     return s
 
 
+def _reldate(word, today):
+    """today / tomorrow / yesterday / YYYY-MM-DD -> a date, else None (unsupported relative range)."""
+    w = (word or "").strip().lower()
+    if w == "today":
+        return today
+    if w == "tomorrow":
+        return today + timedelta(days=1)
+    if w == "yesterday":
+        return today - timedelta(days=1)
+    return _pdate(w)
+
+
 def _date_clause(field, rest, task, today):
-    """Evaluate a date filter like 'before today' / 'today' / 'after 2026-01-01' / 'before <date>'.
-    field in due/scheduled/start; 'happens' handled by caller. Returns bool or None (unsupported)."""
+    """Evaluate a date filter like 'before tomorrow' / 'today' / 'after 2026-01-01'.
+    field in due/scheduled/start; 'happens' = any of them. Returns bool or None (unsupported, e.g.
+    'before next 1 week' — we don't guess calendar-week boundaries; None -> placeholder)."""
     rest = rest.strip()
-    if field == "happens":
-        vals = [task["due"], task["scheduled"], task["start"]]
-    else:
-        vals = [task[field]]
-    if rest in ("no date", "") and field != "happens":
-        return None  # ambiguous -> unsupported
+    vals = [task["due"], task["scheduled"], task["start"]] if field == "happens" else [task[field]]
     op, _, arg = rest.partition(" ")
-    if rest in ("today",):
-        return any(v == today for v in vals if v)
-    if op in ("before", "after", "on") and arg:
-        tgt = today if arg.strip() == "today" else _pdate(arg.strip())
+    if op in ("before", "after", "on"):
+        tgt = _reldate(arg, today)
         if not tgt:
             return None
         if op == "before":
@@ -198,9 +204,9 @@ def _date_clause(field, rest, task, today):
         if op == "after":
             return any(v and v > tgt for v in vals)
         return any(v == tgt for v in vals)
-    d = _pdate(rest)  # bare date == on that date
-    if d:
-        return any(v == d for v in vals)
+    tgt = _reldate(rest, today)  # bare word/date == on that day
+    if tgt:
+        return any(v == tgt for v in vals)
     return None
 
 
@@ -253,12 +259,24 @@ def _eval_line(line, task, today):
 _SORT_KEY = {"due": "due", "scheduled": "scheduled", "start": "start", "priority": "priority",
              "description": "desc", "path": "path"}
 
+# the ONE "filter by function" idiom we translate safely: task.file.folder.includes("X") (+ optional !)
+_FN_FOLDER_RE = re.compile(r'^(!?)\s*task\.file\.folder\.includes\(\s*["\'](.+?)["\']\s*\)$')
+
+
+def _translate_fn_filter(expr):
+    """'task.file.folder.includes("X")' -> 'path includes X' (or 'does not include' if negated).
+    Any other function expression -> None (unsupported; caller placeholders, never broadens)."""
+    m = _FN_FOLDER_RE.match(expr.strip())
+    if not m:
+        return None
+    return ("path does not include " if m.group(1) == "!" else "path includes ") + m.group(2)
+
 
 def _run_tasks(root, text, today):
     filters, short, limit, sort_field, sort_rev = [], False, None, None, False
     for raw in text.split("\n"):
         line = raw.strip()
-        if not line:
+        if not line or line.startswith("#"):  # blank or Tasks-plugin comment line
             continue
         low = line.lower()
         if low == "short mode":
@@ -270,6 +288,8 @@ def _run_tasks(root, text, today):
                 limit = int(low[6:].strip()); continue
             except ValueError:
                 return None
+        if low.startswith("sort by function"):
+            continue  # function sort -> ignore (presentation only; doesn't change WHICH tasks)
         if low.startswith("sort by "):
             rest = low[8:].split()
             f = _SORT_KEY.get(rest[0]) if rest else None
@@ -277,6 +297,11 @@ def _run_tasks(root, text, today):
                 return None
             sort_field, sort_rev = f, (len(rest) > 1 and rest[1] in ("reverse", "desc"))
             continue
+        if low.startswith("filter by function "):
+            tr = _translate_fn_filter(line[len("filter by function "):])
+            if tr is None:
+                return None  # unsupported function filter -> placeholder
+            filters.append(tr); continue
         filters.append(line)
     idx = _index(root)
     out = []
@@ -391,19 +416,39 @@ def _run_dataview(root, text, today):
     return _render_tasks(tasks, today, short=False)
 
 
+# ---- dataviewjs: the common "emit a ```tasks query into a callout" idiom -------------------------
+# We DO NOT execute JavaScript. We only recognize the widespread pattern
+#   const query = `<tasks query>`;  dv.paragraph(callout('```tasks\n' + query + '\n```', ...))
+# by extracting the STATIC `const query` template literal and running it through the Tasks engine.
+# Anything else (other dataviewjs, or a query with ${...} JS-interpolated dates) -> None (placeholder).
+_DV_QUERY_RE = re.compile(r"const\s+query\s*=\s*`([^`]*)`", re.S)
+
+
+def _dataviewjs_tasks(vault_root, src, today):
+    if "```tasks" not in src:  # only the tasks-emitting idiom
+        return None
+    m = _DV_QUERY_RE.search(src)
+    if not m:
+        return None
+    query = m.group(1)
+    if "${" in query:
+        return None  # JS-computed date we can't resolve safely
+    return _run_tasks(vault_root, query, today)
+
+
 # ---- entry point ---------------------------------------------------------
 def run(vault_root, kind, query_text):
     """Render a dynamic block to lines, or None if unsupported (caller shows a placeholder).
     kind = the code-fence info string, lowercased ('tasks' | 'dataview' | 'dataviewjs' | ...)."""
     kind = (kind or "").strip().lower()
-    if kind == "dataviewjs":
-        return None  # arbitrary JS — cannot run
     today = datetime.now().date()
     try:
         if kind == "tasks":
             return _run_tasks(vault_root, query_text, today)
         if kind == "dataview":
             return _run_dataview(vault_root, query_text, today)
+        if kind == "dataviewjs":
+            return _dataviewjs_tasks(vault_root, query_text, today)
     except Exception:
         return None  # never let a query crash a note read
     return None

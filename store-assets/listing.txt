@@ -1,0 +1,93 @@
+G2sidian — Even Hub store listing (copy-and-paste)
+==================================================
+
+
+APP NAME
+--------
+G2sidian
+
+
+SUBTITLE / TAGLINE
+------------------
+Your Obsidian vault on your glasses — self-hosted, private, hands-free.
+
+
+SHORT DESCRIPTION
+-----------------
+View and voice-capture your Obsidian notes on Even G2 glasses, hands-free. A tiny
+backend runs on your own computer, reads your vault files directly, and is reachable
+only over your own Tailscale network (token-required, loopback-bound). No central
+server, no accounts, no analytics — your notes never leave your machine.
+
+
+DESCRIPTION
+-----------
+G2sidian puts your Obsidian notes where you can just glance at them. Pick a vault once
+on your phone and your glasses open straight into it — no menus to dig through, no phone
+in your hand.
+
+What you can do, hands-free, on the glasses:
+• Glance: open to a clean, readable view. Your Obsidian Tasks and Dataview (LIST/TASK)
+  query blocks render as live results — handy for a quick "what's due today." Common task
+  dashboards built with dataviewjs render too; other dataviewjs blocks show a placeholder.
+• Browse and read: move through your vault's folder tree and read notes rendered to clean
+  lines, with Obsidian markdown flattened (wikilinks, callouts, tasks, tables, headings).
+• Search: find a note by full text, filename, or tag.
+• Capture by voice: speak a thought into today's daily note (or an inbox) without reaching
+  for anything. Reading a note? Speak to append to it. Or just type on the phone instead.
+
+Gestures: tap = open/capture, double-tap = back, swipe = scroll.
+
+Private by design: a small backend runs on YOUR own computer and reads your Obsidian vault
+files directly. It is loopback-bound, token-required, and reachable only over your own
+Tailscale network. There is no central or third-party server, no accounts, and no
+analytics. The developer collects nothing, and your notes never leave your machine.
+
+Voice is optional. It needs an OpenAI Whisper API key on your own backend. If voice is
+enabled, the dictated audio is sent to OpenAI for transcription (see the privacy policy).
+Without a key, you simply type on the phone and nothing is sent anywhere but your own
+backend.
+
+Requires a one-time backend setup on your own computer (your Obsidian vault folder plus
+Tailscale; an OpenAI Whisper API key only if you want voice). G2sidian is an independent
+app: not affiliated with Obsidian, no desktop Obsidian plugin required, no cloud sync, and
+no multi-user server.
+
+
+CATEGORY
+--------
+Productivity
+
+
+PERMISSIONS (justifications)
+----------------------------
+network — Connects the glasses app to your own self-hosted backend over your private
+Tailscale network to read your Obsidian vault, run searches and queries, and save captured
+notes. The app talks only to the backend URL you enter in Setup; no other servers are
+contacted, except OpenAI for transcription if you enable voice.
+
+g2-microphone — Captures your voice for hands-free quick-capture into a daily note or inbox
+and for appending dictation to the note you're reading. Used only when you start a voice
+capture; if you leave voice disabled, no microphone audio is used and you type on the phone.
+
+
+PRIVACY POLICY
+--------------
+See privacy.txt (host it somewhere linkable). In short: G2sidian is self-hosted; the
+developer operates no server and collects nothing. Your notes stay on your own machine and
+flow only between the glasses app and your own backend over your own Tailscale network. No
+accounts, no analytics. Backend URL/token/vault choice are stored only on your phone. Voice
+is optional — only if you enable it (with your own OpenAI key) is dictated audio sent to
+OpenAI to transcribe.
+
+
+TERMS & CONDITIONS
+------------------
+G2sidian is provided "as is," without warranty of any kind. It requires you to run a backend
+on your own computer over your own Tailscale network; you are responsible for installing and
+securing that backend (keep the token secret, keep it loopback-bound and tailnet-only) and
+for your own vault backups. The developer hosts no service and stores no data. If you enable
+voice you must supply your own OpenAI Whisper API key and are subject to OpenAI's terms;
+dictated audio is sent to OpenAI only when voice is enabled. G2sidian is not affiliated with,
+endorsed by, or sponsored by Obsidian or OpenAI. To the maximum extent permitted by law, the
+developer is not liable for any data loss or damages arising from use; always keep backups.

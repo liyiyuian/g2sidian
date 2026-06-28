@@ -7,7 +7,9 @@ glasses. Your vaults stay on your own machine; the glasses reach a tiny local ba
 - **Browse** every vault's folder tree, **search** by filename/tag/full-text, and **read** notes
   rendered to clean lines (Obsidian markdown flattened: wikilinks, callouts, tasks, tables…).
 - **Tasks & Dataview** — `tasks` and `dataview` (LIST/TASK) query blocks are evaluated server-side
-  and rendered as live results (e.g. a "what's due today" view); `dataviewjs` shows a placeholder.
+  and rendered as live results (e.g. a "what's due today" view). Common **task dashboards built with
+  `dataviewjs`** render too (the embedded Tasks query is extracted — no JavaScript is executed);
+  anything outside the supported subset shows a placeholder.
 - **Quick-capture** a thought by voice straight into today's daily note (or an inbox).
 - **Append** to the note you're reading by voice — or type on the phone when you'd rather.
 
