@@ -1,4 +1,4 @@
-# G2sidian — Setup
+# Gbsidian — Setup
 
 View (and voice-capture into) your **Obsidian** vaults on your Even G2 glasses. Your notes never
 leave your machine — the glasses talk to a tiny backend on your computer over **your Tailscale
@@ -18,7 +18,7 @@ This single command:
 - auto-discovers your Obsidian vaults (any folder containing `.obsidian/`) and generates an access token,
 - writes `~/.config/g2sidian.env` (chmod 600), installs a `systemd --user` service, and exposes it
   tailnet-only at `https://<host>.<tailnet>.ts.net:8445` (`tailscale serve`),
-- **builds `glasses/G2sidian-<version>.ehpk`** with your backend's address baked into the app whitelist, and
+- **builds `glasses/Gbsidian-<version>.ehpk`** with your backend's address baked into the app whitelist, and
 - prints a `g2sidian:…` **config line** (and a QR) for the phone.
 
 > It will ask once for an optional OpenAI key (press Enter to skip), and use `sudo` once for
@@ -26,13 +26,13 @@ This single command:
 
 ## 2. Install the glasses app
 `install.sh` already built your `.ehpk`. Install it one of two ways:
-- **QR sideload (quickest):** `cd glasses && npx @evenrealities/evenhub-cli@latest qr --url file://$(pwd)/G2sidian-*.ehpk`
+- **QR sideload (quickest):** `cd glasses && npx @evenrealities/evenhub-cli@latest qr --url file://$(pwd)/Gbsidian-*.ehpk`
   (or run `npm run dev` and QR that) → in the Even app's developer section tap **Scan QR**.
-- **Persistent (Hub Private build):** upload `glasses/G2sidian-*.ehpk` at
+- **Persistent (Hub Private build):** upload `glasses/Gbsidian-*.ehpk` at
   [hub.evenrealities.com](https://hub.evenrealities.com) → phone **Me → Apps → Private builds → Install**.
 
 ## 3. Connect & pick your vault
-Open **G2sidian** on the phone → **Setup** → **Paste config** → paste the line `install.sh` printed
+Open **Gbsidian** on the phone → **Setup** → **Paste config** → paste the line `install.sh` printed
 → **Save**. Once connected, a **Vault** picker appears — **tap the vault** you want the glasses to open
 into (switch any time, from the phone). It persists across reinstalls. Status shows
 "● Connected — N vaults · voice on/off".
@@ -69,7 +69,7 @@ G2SIDIAN_DAILY_FORMAT=%Y-%m-%d
 then `python3 g2sidian_api.py` (or run as a service) and `sudo tailscale serve --bg --https=8445 8793`.
 Build the app by hand: `cp glasses/app.json.example glasses/app.json`, set your origin
 (`https://<host>.<tailnet>.ts.net:8445`) in `permissions[network].whitelist`, then
-`cd glasses && npm install && npm run build && npx @evenrealities/evenhub-cli@latest pack app.json dist -o G2sidian.ehpk`.
+`cd glasses && npm install && npm run build && npx @evenrealities/evenhub-cli@latest pack app.json dist -o Gbsidian.ehpk`.
 
 Verify the backend: `curl -s localhost:8793/api/health` → `{"ok":true,...}`.
 

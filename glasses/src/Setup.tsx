@@ -67,7 +67,7 @@ export function Setup({ onSave }: { onSave: () => void }) {
 
   return (
     <div style={wrap}>
-      <h2 style={{ margin: 0, fontSize: 20 }}>G2sidian — Setup</h2>
+      <h2 style={{ margin: 0, fontSize: 20 }}>Gbsidian — Setup</h2>
       <p style={{ color: '#88a895', fontSize: 13, lineHeight: 1.4 }}>
         Run <code>install.sh</code> on the computer that holds your Obsidian vaults, then paste the config code it prints. Your notes stay on your machine.
       </p>

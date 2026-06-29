@@ -1,4 +1,4 @@
-# G2sidian
+# Gbsidian
 
 **Your Obsidian vault on your glasses — self-hosted, private, hands-free.**
 
@@ -8,7 +8,7 @@ computer**, reads your vault files directly, and is reachable **only over your o
 no central server, no accounts, no analytics. Your notes never leave your machine.
 
 <p align="center">
-  <img src="store-assets/screenshots/demo.gif" width="500" alt="G2sidian demo — browser, reader, tasks, voice capture">
+  <img src="store-assets/screenshots/demo.gif" width="500" alt="Gbsidian demo — browser, reader, tasks, voice capture">
 </p>
 
 ## What it looks like
@@ -40,7 +40,7 @@ no central server, no accounts, no analytics. Your notes never leave your machin
 
 ## Quick start (one command)
 
-You self-host G2sidian — your notes stay on your machine. You need **Python 3.10+**, **Node.js/npm**,
+You self-host Gbsidian — your notes stay on your machine. You need **Python 3.10+**, **Node.js/npm**,
 and **Tailscale** (logged in).
 
 ```bash
@@ -56,11 +56,11 @@ That one command:
 Then:
 - **Install the app:** sideload the printed `.ehpk` via `npx @evenrealities/evenhub-cli@latest qr …`,
   or upload it as a **Private build** at [hub.evenrealities.com](https://hub.evenrealities.com).
-- **Connect:** open **G2sidian → Setup → Paste config**, paste the line, and pick a vault.
+- **Connect:** open **Gbsidian → Setup → Paste config**, paste the line, and pick a vault.
 
 More detail (and a fully manual path): **[SETUP.md](SETUP.md)**.
 
-> **Note:** G2sidian is inherently self-hosted — Even's network whitelist is exact-origin, so each
+> **Note:** Gbsidian is inherently self-hosted — Even's network whitelist is exact-origin, so each
 > person builds their own `.ehpk` pointed at their own backend. There is no one-click public install;
 > this repo *is* the distribution.
 

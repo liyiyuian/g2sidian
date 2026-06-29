@@ -1,11 +1,11 @@
-G2sidian — Privacy Policy
+Gbsidian — Privacy Policy
 Last updated: 2026-06-28
 
-Summary: G2sidian is self-hosted and private. The developer operates no server and collects no
+Summary: Gbsidian is self-hosted and private. The developer operates no server and collects no
 data about you. Your Obsidian notes stay on your own machine.
 
 WHAT G2SIDIAN IS
-G2sidian is a smart-glasses app for viewing and voice-capturing your Obsidian notes. A small
+Gbsidian is a smart-glasses app for viewing and voice-capturing your Obsidian notes. A small
 backend that you run on your own computer reads your Obsidian vault files directly. The glasses app
 reaches this backend only over your own Tailscale network. Access is token-required, and the backend
 is bound to loopback and exposed only within your tailnet.
@@ -45,7 +45,7 @@ by the developer. Removing your OpenAI key disables all audio transmission; unin
 stopping the backend ends all access.
 
 CHILDREN
-G2sidian is a personal productivity tool and is not directed at children.
+Gbsidian is a personal productivity tool and is not directed at children.
 
 CHANGES
 If this policy changes, the updated text will accompany the app listing.

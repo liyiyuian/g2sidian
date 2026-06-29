@@ -1,4 +1,4 @@
-# G2sidian — store assets
+# Gbsidian — store assets
 
 Copy-and-paste materials for the Even Hub listing.
 

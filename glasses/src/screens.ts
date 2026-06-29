@@ -37,8 +37,8 @@ const ACTION_ROWS = 2
 type BrowseRow = { cap: true } | { search: true } | { entry: Entry }
 const browserScreen: GlassScreen<AppState, Ctx> = {
   display(s, nav): DisplayData {
-    if (s.loading) return { lines: [...glassHeader('G2sidian'), line('connecting…', 'meta')] }
-    if (s.error) return { lines: [...glassHeader('G2sidian', 'offline'), line(clip(s.error, 30), 'meta')] }
+    if (s.loading) return { lines: [...glassHeader('Gbsidian'), line('connecting…', 'meta')] }
+    if (s.error) return { lines: [...glassHeader('Gbsidian', 'offline'), line(clip(s.error, 30), 'meta')] }
     const items: BrowseRow[] = [{ cap: true }, { search: true }, ...s.entries.map((entry) => ({ entry }))]
     const list = buildScrollableList({
       items, highlightedIndex: nav.highlightedIndex, maxVisible: VIS,
@@ -51,7 +51,7 @@ const browserScreen: GlassScreen<AppState, Ctx> = {
     })
     const where = s.path ? `${s.vault}/${s.path}` : s.vault
     const back = s.path ? '◀◀=up' : '◀◀=exit'
-    return { lines: [...glassHeader(clip(where || 'G2sidian', 34), `tap=open ${back}`), ...list] }
+    return { lines: [...glassHeader(clip(where || 'Gbsidian', 34), `tap=open ${back}`), ...list] }
   },
   action(a, nav, s, ctx) {
     const total = s.entries.length + ACTION_ROWS

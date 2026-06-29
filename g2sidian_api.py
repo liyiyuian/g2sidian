@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""JSON control-plane for G2sidian — the Even G2 glasses app that views (and lightly edits)
+"""JSON control-plane for Gbsidian — the Even G2 glasses app that views (and lightly edits)
 the user's Obsidian vaults. Reads/writes the vault folders DIRECTLY off disk (no Obsidian /
 no plugin needed); stdlib only.
 

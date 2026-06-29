@@ -34,7 +34,7 @@ export function App() {
   }, [])
 
   useGlasses<AppState>({
-    appName: 'G2sidian',
+    appName: 'Gbsidian',
     getSnapshot,
     columns: [{ x: 0, w: 576 }], // single full-width column => flush-left, no 2-space prefix
     toDisplayData: (s, nav) => router.toDisplayData(s, nav),

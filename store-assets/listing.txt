@@ -1,10 +1,10 @@
-G2sidian — Even Hub store listing (copy-and-paste)
+Gbsidian — Even Hub store listing (copy-and-paste)
 ==================================================
 
 
 APP NAME
 --------
-G2sidian
+Gbsidian
 
 
 SUBTITLE / TAGLINE
@@ -22,7 +22,7 @@ server, no accounts, no analytics — your notes never leave your machine.
 
 DESCRIPTION
 -----------
-G2sidian puts your Obsidian notes where you can just glance at them. Pick a vault once
+Gbsidian puts your Obsidian notes where you can just glance at them. Pick a vault once
 on your phone and your glasses open straight into it — no menus to dig through, no phone
 in your hand.
 
@@ -48,8 +48,9 @@ enabled, the dictated audio is sent to OpenAI for transcription (see the privacy
 Without a key, you simply type on the phone and nothing is sent anywhere but your own
 backend.
 
-Requires a one-time backend setup on your own computer (your Obsidian vault folder plus
-Tailscale; an OpenAI Whisper API key only if you want voice). G2sidian is an independent
+Requires a one-time, self-hosted backend setup — clone https://github.com/liyiyuian/g2sidian
+and run ./install.sh (needs your Obsidian vault folder + Tailscale; an OpenAI Whisper API key
+only if you want voice). Gbsidian is an independent
 app: not affiliated with Obsidian, no desktop Obsidian plugin required, no cloud sync, and
 no multi-user server.
 
@@ -74,7 +75,7 @@ capture; if you leave voice disabled, no microphone audio is used and you type o
 PRIVACY POLICY
 --------------
 Full policy: https://raw.githubusercontent.com/liyiyuian/g2sidian/main/store-assets/privacy.txt
-In short: G2sidian is self-hosted; the
+In short: Gbsidian is self-hosted; the
 developer operates no server and collects nothing. Your notes stay on your own machine and
 flow only between the glasses app and your own backend over your own Tailscale network. No
 accounts, no analytics. Backend URL/token/vault choice are stored only on your phone. Voice
@@ -84,11 +85,11 @@ OpenAI to transcribe.
 
 TERMS & CONDITIONS
 ------------------
-G2sidian is provided "as is," without warranty of any kind. It requires you to run a backend
+Gbsidian is provided "as is," without warranty of any kind. It requires you to run a backend
 on your own computer over your own Tailscale network; you are responsible for installing and
 securing that backend (keep the token secret, keep it loopback-bound and tailnet-only) and
 for your own vault backups. The developer hosts no service and stores no data. If you enable
 voice you must supply your own OpenAI Whisper API key and are subject to OpenAI's terms;
-dictated audio is sent to OpenAI only when voice is enabled. G2sidian is not affiliated with,
+dictated audio is sent to OpenAI only when voice is enabled. Gbsidian is not affiliated with,
 endorsed by, or sponsored by Obsidian or OpenAI. To the maximum extent permitted by law, the
 developer is not liable for any data loss or damages arising from use; always keep backups.

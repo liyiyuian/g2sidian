@@ -1,4 +1,4 @@
-// External store + actions for the G2sidian glasses control flow.
+// External store + actions for the Gbsidian glasses control flow.
 // Screens (nav.screen): vaults -> browser <-> reader, plus search and capture overlays.
 //   vaults  : pick a vault (row 0 = 🎤 quick capture)
 //   browser : folder-tree browser (row 0 = 🔍 search); tap folder=descend, tap note=open

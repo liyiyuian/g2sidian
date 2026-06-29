@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# G2sidian backend installer — one command to stand up the control plane on YOUR machine.
+# Gbsidian backend installer — one command to stand up the control plane on YOUR machine.
 #
 #   curl -fsSL https://raw.githubusercontent.com/liyiyuian/g2sidian/main/install.sh | bash
 #
@@ -32,7 +32,7 @@ warn(){ printf '\033[33m! %s\033[0m\n' "$*"; }
 die(){ printf '\033[31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 run(){ if [ "$DRY" = 1 ]; then echo "  [dry-run] $*"; else "$@"; fi; }
 
-c "G2sidian backend installer"
+c "Gbsidian backend installer"
 
 # 1) prerequisites -----------------------------------------------------------
 command -v python3 >/dev/null || die "python3 not found (need 3.10+). Install Python first."
@@ -106,7 +106,7 @@ ok "wrote $ENV_FILE"
 mkdir -p "$UNIT_DIR"
 cat > "$UNIT_DIR/g2sidian.service" <<UNIT
 [Unit]
-Description=G2sidian backend (Obsidian-over-Tailscale control plane)
+Description=Gbsidian backend (Obsidian-over-Tailscale control plane)
 After=network-online.target
 
 [Service]
@@ -153,8 +153,8 @@ json.dump(d, open("app.json", "w"), indent=2)
 PY
       npm install --silent >/dev/null 2>&1 && npm run build >/dev/null 2>&1 || exit 1
       VER=$(python3 -c 'import json;print(json.load(open("app.json"))["version"])')
-      npx --yes @evenrealities/evenhub-cli@latest pack app.json dist -o "G2sidian-$VER.ehpk" >/dev/null 2>&1
-    ) && EHPK="glasses/G2sidian-$(python3 -c 'import json;print(json.load(open("glasses/app.json"))["version"])').ehpk"
+      npx --yes @evenrealities/evenhub-cli@latest pack app.json dist -o "Gbsidian-$VER.ehpk" >/dev/null 2>&1
+    ) && EHPK="glasses/Gbsidian-$(python3 -c 'import json;print(json.load(open("glasses/app.json"))["version"])').ehpk"
     [ -n "$EHPK" ] && [ -f "$EHPK" ] && ok "built $EHPK" || { warn "glasses build hit a snag — build it manually (see README)."; EHPK=""; }
   fi
 else
@@ -165,12 +165,12 @@ fi
 BLOB="g2sidian:$(python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(json.dumps({"base":sys.argv[1],"token":sys.argv[2]}).encode()).decode())' "$URL" "$TOKEN")"
 
 echo
-ok "G2sidian backend is up."
+ok "Gbsidian backend is up."
 c  "Backend URL : $URL"
 c  "Token       : $TOKEN"
 [ -n "$EHPK" ] && c "Glasses app : $EHPK   (install via QR sideload, or upload as a Hub Private build)"
 echo
-c  "On your phone: open G2sidian → Setup → 'Paste config'. Paste this line:"
+c  "On your phone: open Gbsidian → Setup → 'Paste config'. Paste this line:"
 echo "  $BLOB"
 if command -v qrencode >/dev/null; then
   echo; c "(or scan this QR with your phone's camera to copy the code, then paste it)"
