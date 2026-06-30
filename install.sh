@@ -19,8 +19,7 @@ set -euo pipefail
 
 REPO="${G2SIDIAN_REPO:-liyiyuian/g2sidian}"
 RAW="https://raw.githubusercontent.com/${REPO}/main"
-PORT="${G2SIDIAN_API_PORT:-8793}"
-HTTPS_PORT="${G2SIDIAN_HTTPS_PORT:-8445}"   # distinct serve mount (tmuxor owns the :443 root)
+PORT="${G2SIDIAN_API_PORT:-8793}"   # served on the default :443 root so the *.ts.net whitelist matches
 INSTALL_DIR="${G2SIDIAN_DIR:-$HOME/.local/share/g2sidian}"
 ENV_FILE="${G2SIDIAN_ENV:-$HOME/.config/g2sidian.env}"
 UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
@@ -125,55 +124,32 @@ run systemctl --user daemon-reload
 run systemctl --user enable --now g2sidian.service
 [ "$DRY" = 1 ] || warn "to keep it running after logout: sudo loginctl enable-linger $USER"
 
-# 8) expose on the tailnet (distinct HTTPS mount; tmuxor owns the :443 root) --
-run sudo tailscale set --operator="$USER"
-run sudo tailscale serve --bg --https="$HTTPS_PORT" "$PORT"
+# 8) expose on the tailnet — DEFAULT :443 (no port) so the URL is plain
+#    https://<host>.<tailnet>.ts.net, which the app's wildcard *.ts.net whitelist matches.
+#    (Serve only ONE app on the :443 root per machine — same as the tmuxor model.)
+run sudo tailscale set --operator="$USER"   # one-time, so 'tailscale serve' needs no sudo
+run tailscale serve --bg "$PORT"
 
-# 9) resolve the tailnet URL -------------------------------------------------
+# 9) resolve the tailnet URL (no port) ---------------------------------------
 DNS=$(tailscale status --json 2>/dev/null | python3 -c 'import sys,json;print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))' 2>/dev/null || true)
-URL="https://${DNS:-<your-tailscale-host>.ts.net}:${HTTPS_PORT}"
+URL="https://${DNS:-<your-tailscale-host>.ts.net}"
 
-# 10) build the glasses .ehpk with YOUR domain baked into the whitelist ------
-#     (only when run from a clone with npm available — the curl|bash flow skips it)
-EHPK=""
-if [ -d glasses ] && command -v npm >/dev/null && [ -n "$DNS" ]; then
-  c "Building the glasses app — baking your backend ($URL) into the whitelist…"
-  if [ "$DRY" = 1 ]; then
-    echo "  [dry-run] cp app.json.example→app.json, inject whitelist, npm install && npm run build, pack .ehpk"
-  else
-    ( cd glasses
-      [ -f app.json ] || cp app.json.example app.json
-      python3 - "$URL" <<'PY'
-import json, sys
-d = json.load(open("app.json"))
-for perm in d.get("permissions", []):
-    if perm.get("name") == "network":
-        perm["whitelist"] = [sys.argv[1]]
-json.dump(d, open("app.json", "w"), indent=2)
-PY
-      npm install --silent >/dev/null 2>&1 || exit 1
-      bash build.sh >/dev/null 2>&1 || exit 1   # build + URL-allowlist guard (Even review) + pack
-    ) && EHPK="glasses/Gbsidian-$(python3 -c 'import json;print(json.load(open("glasses/app.json"))["version"])').ehpk"
-    [ -n "$EHPK" ] && [ -f "$EHPK" ] && ok "built $EHPK" || { warn "glasses build hit a snag — build it manually (see README)."; EHPK=""; }
-  fi
-else
-  warn "skipped the glasses .ehpk build (need a clone + npm + a Tailscale domain). See the README to build it."
-fi
-
-# 11) summary + paste-config -------------------------------------------------
+# 10) summary + paste-config -------------------------------------------------
+# The published Gbsidian app is ONE universal build (wildcard whitelist) — no per-user rebuild,
+# no baked URL. Install it from the Hub, then paste this config so it points at YOUR backend.
 BLOB="g2sidian:$(python3 -c 'import base64,json,sys;print(base64.urlsafe_b64encode(json.dumps({"base":sys.argv[1],"token":sys.argv[2]}).encode()).decode())' "$URL" "$TOKEN")"
 
 echo
 ok "Gbsidian backend is up."
 c  "Backend URL : $URL"
 c  "Token       : $TOKEN"
-[ -n "$EHPK" ] && c "Glasses app : $EHPK   (install via QR sideload, or upload as a Hub Private build)"
 echo
-c  "On your phone: open Gbsidian → Setup → 'Paste config'. Paste this line:"
+c  "Install the Gbsidian app from hub.evenrealities.com (one build works for any backend), then"
+c  "on your phone open Gbsidian → Setup → 'Paste config' and paste this line:"
 echo "  $BLOB"
 if command -v qrencode >/dev/null; then
   echo; c "(or scan this QR with your phone's camera to copy the code, then paste it)"
   qrencode -t ANSIUTF8 "$BLOB"
 fi
 echo
-[ -z "$DNS" ] && warn "couldn't read your Tailscale domain — run 'tailscale status' and use https://<host>.ts.net:${HTTPS_PORT}."
+[ -z "$DNS" ] && warn "couldn't read your Tailscale domain — run 'tailscale status' and use https://<host>.ts.net."

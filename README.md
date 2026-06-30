@@ -38,31 +38,28 @@ no central server, no accounts, no analytics. Your notes never leave your machin
 
 3 gestures: **tap** = open / capture · **double-tap** = back · **swipe** = scroll.
 
-## Quick start (one command)
+## Quick start
 
-You self-host Gbsidian — your notes stay on your machine. You need **Python 3.10+**, **Node.js/npm**,
-and **Tailscale** (logged in).
+You self-host Gbsidian — your notes stay on your machine. You need **Python 3.10+** and **Tailscale**
+(logged in). No build tools required — the app is one published build.
 
-```bash
-git clone https://github.com/liyiyuian/g2sidian && cd g2sidian && ./install.sh
-```
+1. **Backend** — clone and run the installer (sets up a `systemd --user` service and serves it
+   tailnet-only over HTTPS on the default `:443` so the app's `*.ts.net` whitelist matches it):
+   ```bash
+   git clone https://github.com/liyiyuian/g2sidian && cd g2sidian && ./install.sh
+   ```
+   It auto-discovers your Obsidian vaults, generates a token, and prints a `g2sidian:…` config line
+   (and a QR) for the phone.
+2. **App** — install **Gbsidian** from [hub.evenrealities.com](https://hub.evenrealities.com). One
+   public build works with any backend — nothing to rebuild.
+3. **Connect** — open **Gbsidian → Setup → Paste config**, paste the line, and pick a vault.
 
-That one command:
-1. auto-discovers your Obsidian vaults and generates an access token,
-2. installs a `systemd --user` service and exposes it tailnet-only over HTTPS (`tailscale serve`),
-3. **builds your glasses `.ehpk`** with your backend's address baked into the manifest whitelist, and
-4. prints a `g2sidian:…` config line (and a QR) for the phone.
+More detail (and a from-source build path): **[SETUP.md](SETUP.md)**.
 
-Then:
-- **Install the app:** sideload the printed `.ehpk` via `npx @evenrealities/evenhub-cli@latest qr …`,
-  or upload it as a **Private build** at [hub.evenrealities.com](https://hub.evenrealities.com).
-- **Connect:** open **Gbsidian → Setup → Paste config**, paste the line, and pick a vault.
-
-More detail (and a fully manual path): **[SETUP.md](SETUP.md)**.
-
-> **Note:** Gbsidian is inherently self-hosted — Even's network whitelist is exact-origin, so each
-> person builds their own `.ehpk` pointed at their own backend. There is no one-click public install;
-> this repo *is* the distribution.
+> **Self-hosted, one build for all:** the app ships a wildcard (`*.ts.net`) network whitelist, so a
+> single published build connects to *your* backend (entered in Setup) without baking anyone's
+> address in. Serve your backend on the default `:443` (a plain `https://<host>.<tailnet>.ts.net`
+> URL) so the wildcard matches — only one app can own the `:443` root per machine.
 
 ## How it works
 
