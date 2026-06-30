@@ -151,9 +151,8 @@ for perm in d.get("permissions", []):
         perm["whitelist"] = [sys.argv[1]]
 json.dump(d, open("app.json", "w"), indent=2)
 PY
-      npm install --silent >/dev/null 2>&1 && npm run build >/dev/null 2>&1 || exit 1
-      VER=$(python3 -c 'import json;print(json.load(open("app.json"))["version"])')
-      npx --yes @evenrealities/evenhub-cli@latest pack app.json dist -o "Gbsidian-$VER.ehpk" >/dev/null 2>&1
+      npm install --silent >/dev/null 2>&1 || exit 1
+      bash build.sh >/dev/null 2>&1 || exit 1   # build + URL-allowlist guard (Even review) + pack
     ) && EHPK="glasses/Gbsidian-$(python3 -c 'import json;print(json.load(open("glasses/app.json"))["version"])').ehpk"
     [ -n "$EHPK" ] && [ -f "$EHPK" ] && ok "built $EHPK" || { warn "glasses build hit a snag — build it manually (see README)."; EHPK=""; }
   fi

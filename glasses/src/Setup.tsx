@@ -98,7 +98,7 @@ export function Setup({ onSave }: { onSave: () => void }) {
 
       <div style={divider}><div style={rule} /> or enter manually <div style={rule} /></div>
       <label style={label} htmlFor="cfg-url">Backend URL (your Tailscale HTTPS address)</label>
-      <input id="cfg-url" type="url" inputMode="url" style={input} value={base} onChange={(e) => { setBase(e.target.value); setErr('') }} placeholder="https://your-host.tailnet.ts.net:8445" autoCapitalize="off" autoCorrect="off" spellCheck={false} />
+      <input id="cfg-url" type="url" inputMode="url" style={input} value={base} onChange={(e) => { setBase(e.target.value); setErr('') }} placeholder="your-host.tailnet.ts.net:8445" autoCapitalize="off" autoCorrect="off" spellCheck={false} />
       <label style={label} htmlFor="cfg-token">Access token (your G2SIDIAN_TOKEN)</label>
       <input id="cfg-token" type="password" style={input} value={token} onChange={(e) => { setToken(e.target.value); setErr('') }} placeholder="paste your token" autoCapitalize="off" autoCorrect="off" spellCheck={false} />
 
