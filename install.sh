@@ -19,7 +19,8 @@ set -euo pipefail
 
 REPO="${G2SIDIAN_REPO:-liyiyuian/g2sidian}"
 RAW="https://raw.githubusercontent.com/${REPO}/main"
-PORT="${G2SIDIAN_API_PORT:-8793}"   # served on the default :443 root so the *.ts.net whitelist matches
+PORT="${G2SIDIAN_API_PORT:-8793}"
+HTTPS_PORT="${G2SIDIAN_HTTPS_PORT:-8445}"   # tailnet HTTPS serve port; the app whitelists *.ts.net:8445
 INSTALL_DIR="${G2SIDIAN_DIR:-$HOME/.local/share/g2sidian}"
 ENV_FILE="${G2SIDIAN_ENV:-$HOME/.config/g2sidian.env}"
 UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
@@ -124,15 +125,14 @@ run systemctl --user daemon-reload
 run systemctl --user enable --now g2sidian.service
 [ "$DRY" = 1 ] || warn "to keep it running after logout: sudo loginctl enable-linger $USER"
 
-# 8) expose on the tailnet — DEFAULT :443 (no port) so the URL is plain
-#    https://<host>.<tailnet>.ts.net, which the app's wildcard *.ts.net whitelist matches.
-#    (Serve only ONE app on the :443 root per machine — same as the tmuxor model.)
+# 8) expose on the tailnet over HTTPS on :8445 (coexists with other Tailscale-served apps that
+#    own the :443 root, e.g. tmuxor). The app whitelists *.ts.net:8445, so this matches with no host baked.
 run sudo tailscale set --operator="$USER"   # one-time, so 'tailscale serve' needs no sudo
-run tailscale serve --bg "$PORT"
+run sudo tailscale serve --bg --https="$HTTPS_PORT" "$PORT"
 
-# 9) resolve the tailnet URL (no port) ---------------------------------------
+# 9) resolve the tailnet URL -------------------------------------------------
 DNS=$(tailscale status --json 2>/dev/null | python3 -c 'import sys,json;print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))' 2>/dev/null || true)
-URL="https://${DNS:-<your-tailscale-host>.ts.net}"
+URL="https://${DNS:-<your-tailscale-host>.ts.net}:${HTTPS_PORT}"
 
 # 10) summary + paste-config -------------------------------------------------
 # The published Gbsidian app is ONE universal build (wildcard whitelist) — no per-user rebuild,
@@ -152,4 +152,4 @@ if command -v qrencode >/dev/null; then
   qrencode -t ANSIUTF8 "$BLOB"
 fi
 echo
-[ -z "$DNS" ] && warn "couldn't read your Tailscale domain — run 'tailscale status' and use https://<host>.ts.net."
+[ -z "$DNS" ] && warn "couldn't read your Tailscale domain — run 'tailscale status' and use https://<host>.ts.net:${HTTPS_PORT}."

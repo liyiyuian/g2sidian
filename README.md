@@ -44,7 +44,7 @@ You self-host Gbsidian — your notes stay on your machine. You need **Python 3.
 (logged in). No build tools required — the app is one published build.
 
 1. **Backend** — clone and run the installer (sets up a `systemd --user` service and serves it
-   tailnet-only over HTTPS on the default `:443` so the app's `*.ts.net` whitelist matches it):
+   tailnet-only over HTTPS on `:8445`, which coexists with other Tailscale-served apps):
    ```bash
    git clone https://github.com/liyiyuian/g2sidian && cd g2sidian && ./install.sh
    ```
@@ -56,10 +56,10 @@ You self-host Gbsidian — your notes stay on your machine. You need **Python 3.
 
 More detail (and a from-source build path): **[SETUP.md](SETUP.md)**.
 
-> **Self-hosted, one build for all:** the app ships a wildcard (`*.ts.net`) network whitelist, so a
-> single published build connects to *your* backend (entered in Setup) without baking anyone's
-> address in. Serve your backend on the default `:443` (a plain `https://<host>.<tailnet>.ts.net`
-> URL) so the wildcard matches — only one app can own the `:443` root per machine.
+> **Self-hosted, one build for all:** the app ships a wildcard whitelist (`*.ts.net` **and**
+> `*.ts.net:8445`), so a single published build connects to *your* backend (entered in Setup) without
+> baking anyone's address in. `install.sh` serves on `:8445` (covered by the `*.ts.net:8445` entry) so
+> it coexists with other Tailscale-served apps; the plain `*.ts.net` entry also covers a `:443` backend.
 
 ## How it works
 

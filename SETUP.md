@@ -17,12 +17,13 @@ git clone https://github.com/liyiyuian/g2sidian && cd g2sidian && ./install.sh
 This single command:
 - auto-discovers your Obsidian vaults (any folder containing `.obsidian/`) and generates an access token,
 - writes `~/.config/g2sidian.env` (chmod 600), installs a `systemd --user` service, and exposes it
-  tailnet-only on the **default `:443`** (`tailscale serve`) → a plain `https://<host>.<tailnet>.ts.net`
-  URL that the app's `*.ts.net` whitelist matches, and
+  tailnet-only on **`:8445`** (`tailscale serve --https=8445`) → `https://<host>.<tailnet>.ts.net:8445`,
+  which the app's `*.ts.net:8445` whitelist entry matches, and
 - prints a `g2sidian:…` **config line** (and a QR) for the phone.
 
 > It asks once for an optional OpenAI key (Enter to skip) and uses `sudo` once for `tailscale serve`.
-> Only one app can own the `:443` root per machine. Re-run any time — it reuses your token.
+> Serving on `:8445` lets Gbsidian coexist with other Tailscale-served apps (one app owns the `:443`
+> root per machine). Re-run any time — it reuses your token.
 
 ## 2. Install the glasses app
 Install **Gbsidian** from [hub.evenrealities.com](https://hub.evenrealities.com) — it's **one public

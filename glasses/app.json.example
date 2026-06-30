@@ -2,7 +2,7 @@
   "package_id": "com.yourname.g2sidian",
   "edition": "202601",
   "name": "Gbsidian",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "min_app_version": "2.0.0",
   "min_sdk_version": "0.0.7",
   "entrypoint": "index.html",
@@ -12,7 +12,9 @@
       "desc": "Connect to your Gbsidian backend (your Obsidian vaults) over Tailscale.",
       "whitelist": [
         "https://*.ts.net",
-        "https://*.*.ts.net"
+        "https://*.ts.net:8445",
+        "https://*.*.ts.net",
+        "https://*.*.ts.net:8445"
       ]
     },
     {
