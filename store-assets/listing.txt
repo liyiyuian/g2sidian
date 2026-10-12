@@ -9,7 +9,7 @@ Gbsidian
 
 SUBTITLE / TAGLINE
 ------------------
-Your Obsidian vault on your glasses — self-hosted, private, hands-free.
+Obsidian reader, editor on your glasses
 
 
 SHORT DESCRIPTION
