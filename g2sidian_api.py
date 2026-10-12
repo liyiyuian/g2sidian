@@ -11,8 +11,11 @@ Endpoints (token required on all except /api/health):
   GET  /api/health                                  -> {ok, voice, vaults:[name...]}
   GET  /api/vaults                                  -> {vaults:[{name}]}
   GET  /api/list?vault=&path=                       -> {vault, path, parent, entries:[...]}
-  GET  /api/note?vault=&path=                       -> {vault, path, title, tags, mtime, lines:[...]}
-  GET  /api/search?vault=&q=&limit=                 -> {q, results:[{path,title,score,snippet,mtime}]}
+  GET  /api/note?vault=&path=                       -> {vault, path, title, tags, mtime, lines:[...], links:[...]}
+  GET  /api/search?vault=&q=&limit=&scope=          -> {q, results:[{path,title,score,snippet,mtime}]}
+  GET  /api/recent?vault=&limit=                    -> {vault, results:[{path,title,mtime}]}
+  GET  /api/bookmarks?vault=                        -> {vault, bookmarks:[{path,title}]}  (.obsidian/bookmarks.json)
+  GET  /api/tasks/due?vault=&limit=                 -> {vault, tasks:[{path,desc,due,overdue}]}  (not-done, due<=today)
   GET  /api/capture/target[?vault=&mode=]           -> {vault, path, exists, label}
   POST /api/transcribe        (raw WAV body)        -> {text, seconds, cost}
   POST /api/append   {vault, path, text, base_mtime}-> {ok, path, mtime}  (append a line, atomic+CAS)
@@ -27,8 +30,10 @@ Env (see ~/.config/g2sidian.env):
   G2SIDIAN_CAPTURE_VAULT  vault name for voice quick-capture (default: first vault)
   G2SIDIAN_CAPTURE_MODE   daily|inbox (default daily)
   G2SIDIAN_INBOX_PATH     vault-relative inbox note (default Inbox.md)
-  G2SIDIAN_DAILY_FOLDER   vault-relative folder for daily notes (default "": vault root)
-  G2SIDIAN_DAILY_FORMAT   strftime for the daily-note name (default %Y-%m-%d)
+  G2SIDIAN_DAILY_FOLDER   vault-relative folder for daily notes (default: Obsidian's
+                          .obsidian/daily-notes.json "folder", else "": vault root)
+  G2SIDIAN_DAILY_FORMAT   strftime for the daily-note name (default: Obsidian's
+                          daily-notes.json "format" translated, else %Y-%m-%d)
 """
 import hmac
 import json
@@ -160,15 +165,35 @@ def read_note(root, rel):
         raise FileNotFoundError(rel)
     with open(full, encoding="utf-8", errors="replace") as f:
         text = f.read()
+    here = os.path.relpath(full, root)
+    idx = vault_query.build_index(root)  # one build shared by embed-expansion + link-resolution
+
+    def _embed(inner):
+        # expand an OWN-LINE ![[note]] to that note's flattened lines (ONE level, no nested embeds)
+        target = inner.split("|", 1)[0].split("#", 1)[0].strip()
+        p = vault_query.resolve(idx, target, here)
+        if not p:
+            return None
+        try:
+            with open(safe_join(root, p), encoding="utf-8", errors="replace") as f:
+                sub = f.read()
+        except (OSError, ValueError):
+            return None
+        return md_flatten.flatten(sub, query_runner=lambda k, qq: vault_query.run(root, k, qq))["lines"]
+
     # render ```tasks / ```dataview blocks against the whole vault (subset; placeholder if unsupported)
-    data = md_flatten.flatten(text, query_runner=lambda kind, q: vault_query.run(root, kind, q))
+    data = md_flatten.flatten(text, query_runner=lambda kind, q: vault_query.run(root, kind, q), embed_runner=_embed)
+    # resolve outgoing [[links]] to real note paths (path=None => unresolved; client dims those)
+    links = [{"label": lk["label"], "path": vault_query.resolve(idx, lk["target"], here)}
+             for lk in data.get("links", [])]
     st = os.stat(full)
     return {
-        "path": os.path.relpath(full, root),
+        "path": here,
         "title": data["title"] or os.path.basename(full)[:-3],
         "tags": data["tags"],
         "aliases": data["aliases"],
         "lines": data["lines"],
+        "links": links,
         # CAS token as a STRING: st_mtime_ns (~1.8e18) exceeds JS Number.MAX_SAFE_INTEGER, so a
         # bare JSON number would be quantized on the phone and never match on round-trip.
         "mtime": str(st.st_mtime_ns),
@@ -189,24 +214,43 @@ def _snippet(content, terms, width=90):
     return ("…" if start > 0 else "") + chunk
 
 
-def search(root, q, limit=50):
-    q = (q or "").strip().lower()
+def _folder_label(rel):
+    """Vault-relative parent folder of a note ('' for a root note) — shown for title/alias hits so a
+    result reads 'NoteName  — Work/ClientA' instead of an opening-line noise snippet."""
+    return os.path.dirname(rel)
+
+
+def search(root, q, limit=50, scope=""):
+    q = (q or "").strip()
     if not q:
         return []
-    terms = q.split()
+    ql = q.lower()
+    terms = ql.split()
+    # #tag fast path: a lone "#tag" filters via the tag index (finds FRONTMATTER-only tags a
+    # content substring scan misses, and never false-matches #proj against #projectalpha).
+    if len(terms) == 1 and terms[0].startswith("#"):
+        return [{**r, "score": 100, "snippet": _folder_label(r["path"])}
+                for r in vault_query.notes_with_tag(root, terms[0], limit)]
     af = attachment_folder(root)
+    try:
+        base = safe_join(root, scope) if scope else root
+    except ValueError:
+        base = root
+    if not os.path.isdir(base):
+        base = root
     results = []
-    for dirpath, dirnames, filenames in os.walk(root):
+    for dirpath, dirnames, filenames in os.walk(base):
         dirnames[:] = [d for d in dirnames if not d.startswith(".") and d not in _SKIP_DIRS
                        and (not af or os.path.relpath(os.path.join(dirpath, d), root) != af)]
         for fn in filenames:
             if not _is_note(fn):
                 continue
             full = os.path.join(dirpath, fn)
+            rel = os.path.relpath(full, root)
             name = fn[:-3]
             namel = name.lower()
             score = 0
-            if q in namel:
+            if ql in namel:
                 score += 100
             score += 20 * sum(1 for t in terms if t in namel)
             try:
@@ -214,8 +258,16 @@ def search(root, q, limit=50):
                     content = f.read()
             except OSError:
                 continue
+            # frontmatter aliases score title-tier (open a note by the name you actually call it)
+            aliases = md_flatten.parse_frontmatter(md_flatten.split_frontmatter(content)[0])["aliases"]
+            al = " ".join(aliases).lower()
+            alias_hit = bool(al) and ql in al
+            if alias_hit:
+                score += 90
+            elif al:
+                score += 40 * sum(1 for t in terms if t in al)
             cl = content.lower()
-            if q in cl:
+            if ql in cl:
                 score += 5
             score += 2 * sum(1 for t in terms if t in cl)
             if score <= 0:
@@ -224,15 +276,43 @@ def search(root, q, limit=50):
                 st = os.stat(full)
             except OSError:
                 continue
+            title_hit = (ql in namel) or alias_hit
             results.append({
-                "path": os.path.relpath(full, root),
+                "path": rel,
                 "title": name,
                 "score": score,
-                "snippet": _snippet(content, terms),
-                "mtime": st.st_mtime_ns,
+                "snippet": _folder_label(rel) if title_hit else _snippet(content, terms),
+                "mtime": round(st.st_mtime_ns / 1e9, 3),
             })
     results.sort(key=lambda r: (-r["score"], -r["mtime"]))
     return results[:limit]
+
+
+def read_bookmarks(root):
+    """Mirror .obsidian/bookmarks.json -> [{path,title}] for NOTE bookmarks (file/heading/block);
+    groups are flattened, graph/search/folder bookmarks skipped, missing file -> []. The user's own
+    curated MOCs/dashboards become a one-tap jump list on the glasses."""
+    try:
+        with open(safe_join(root, ".obsidian/bookmarks.json"), encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return []
+    out, seen = [], set()
+
+    def walk(items):
+        for it in items or []:
+            t = it.get("type")
+            if t == "group":
+                walk(it.get("items"))
+            elif t in ("file", "heading", "block"):
+                p = (it.get("path") or "").strip()
+                if not p.endswith(".md") or p in seen:
+                    continue
+                seen.add(p)
+                out.append({"path": p, "title": it.get("title") or os.path.basename(p)[:-3]})
+
+    walk(data.get("items"))
+    return out
 
 
 # --- safe writes (atomic temp+rename, mtime compare-and-swap, out-of-vault backup) ----
@@ -319,6 +399,65 @@ def append_to_note(root, rel, addition, base_mtime=None, create=False):
 
 # --- voice quick-capture target resolution ---------------------------------
 
+# moment.js format tokens -> strftime, keyed by the maximal same-letter run. Only
+# unambiguous tokens are listed; anything else makes _moment_to_strftime fail closed.
+_MOMENT_TOKENS = {
+    "YYYY": "%Y", "YY": "%y",
+    "MMMM": "%B", "MMM": "%b", "MM": "%m", "M": "%-m",
+    "DD": "%d", "D": "%-d",
+    "dddd": "%A", "ddd": "%a",
+    "HH": "%H", "H": "%-H", "mm": "%M", "ss": "%S",
+}
+
+
+def _moment_to_strftime(fmt):
+    """Translate an Obsidian daily-note 'format' (moment.js) to a strftime string, or return
+    None if it holds any token we can't map EXACTLY. Callers fall back to their own default on
+    None, so a format we don't fully understand can never resolve captures to a wrong file."""
+    out = []
+    i, n = 0, len(fmt)
+    while i < n:
+        c = fmt[i]
+        if c == "[":                       # moment literal: [text] -> verbatim
+            j = fmt.find("]", i + 1)
+            if j == -1:
+                return None
+            out.append(fmt[i + 1:j].replace("%", "%%"))
+            i = j + 1
+        elif c.isalpha():                  # a run of one letter is one token
+            j = i
+            while j < n and fmt[j] == c:
+                j += 1
+            sub = _MOMENT_TOKENS.get(fmt[i:j])
+            if sub is None:
+                return None                # unknown/unsupported token -> fail closed
+            out.append(sub)
+            i = j
+        else:                              # separators/digits pass through literally
+            out.append("%%" if c == "%" else c)
+            i += 1
+    return "".join(out)
+
+
+def _daily_notes_config(root):
+    """Best-effort read of Obsidian's core Daily Notes settings (.obsidian/daily-notes.json).
+    Returns (folder, strftime_format), using the file's values only where we can map them and
+    the built-in defaults otherwise. Never raises; env vars still override in capture_target."""
+    folder, fmt = "", "%Y-%m-%d"
+    try:
+        with open(os.path.join(root, ".obsidian", "daily-notes.json"), encoding="utf-8") as f:
+            conf = json.load(f)
+        f_folder = (conf.get("folder") or "").strip().strip("/")
+        if f_folder:
+            folder = f_folder
+        mapped = _moment_to_strftime((conf.get("format") or "").strip())
+        if mapped:
+            fmt = mapped
+    except (OSError, json.JSONDecodeError, ValueError):
+        pass
+    return folder, fmt
+
+
 def capture_config(vault_override=None, mode_override=None):
     name = vault_override or os.environ.get("G2SIDIAN_CAPTURE_VAULT", "") or (VAULTS[0]["name"] if VAULTS else "")
     mode = (mode_override or os.environ.get("G2SIDIAN_CAPTURE_MODE", "daily")).lower()
@@ -337,11 +476,15 @@ def capture_target(vault_override=None, mode_override=None):
             rel += ".md"
         label = "Inbox"
     else:
-        folder = os.environ.get("G2SIDIAN_DAILY_FOLDER", "").strip().strip("/")
-        fmt = os.environ.get("G2SIDIAN_DAILY_FORMAT", "%Y-%m-%d")
-        fname = datetime.now().strftime(fmt) + ".md"
+        j_folder, j_fmt = _daily_notes_config(root)   # Obsidian's own daily-note settings
+        env_folder = os.environ.get("G2SIDIAN_DAILY_FOLDER")
+        folder = (env_folder if env_folder is not None else j_folder).strip().strip("/")
+        env_fmt = os.environ.get("G2SIDIAN_DAILY_FORMAT")
+        fmt = env_fmt if env_fmt else j_fmt
+        stamp = datetime.now().strftime(fmt)
+        fname = stamp + ".md"
         rel = os.path.join(folder, fname) if folder else fname
-        label = "Daily note " + datetime.now().strftime(fmt)
+        label = "Daily note " + stamp
     full = safe_join(root, rel)  # validate jail now
     return {"vault": name, "path": os.path.relpath(full, root), "exists": os.path.isfile(full), "label": label, "mode": mode}
 
@@ -521,7 +664,25 @@ class Handler(BaseHTTPRequestHandler):
             if not root:
                 return self._json(404, {"error": "no such vault"})
             limit = max(1, min(100, int(q.get("limit", ["50"])[0] or 50)))
-            return self._json(200, {"vault": name, "q": q.get("q", [""])[0], "results": search(root, q.get("q", [""])[0], limit)})
+            return self._json(200, {"vault": name, "q": q.get("q", [""])[0],
+                                    "results": search(root, q.get("q", [""])[0], limit, q.get("scope", [""])[0])})
+        if path == "/api/recent":
+            name, root = self._vault(q)
+            if not root:
+                return self._json(404, {"error": "no such vault"})
+            limit = max(1, min(100, int(q.get("limit", ["30"])[0] or 30)))
+            return self._json(200, {"vault": name, "results": vault_query.recent(root, limit)})
+        if path == "/api/bookmarks":
+            name, root = self._vault(q)
+            if not root:
+                return self._json(404, {"error": "no such vault"})
+            return self._json(200, {"vault": name, "bookmarks": read_bookmarks(root)})
+        if path == "/api/tasks/due":
+            name, root = self._vault(q)
+            if not root:
+                return self._json(404, {"error": "no such vault"})
+            limit = max(1, min(200, int(q.get("limit", ["100"])[0] or 100)))
+            return self._json(200, {"vault": name, "tasks": vault_query.due_tasks(root, None, limit)})
         if path == "/api/capture/target":
             try:
                 return self._json(200, capture_target(q.get("vault", [None])[0], q.get("mode", [None])[0]))

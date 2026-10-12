@@ -22,37 +22,22 @@ server, no accounts, no analytics — your notes never leave your machine.
 
 DESCRIPTION
 -----------
-Gbsidian puts your Obsidian notes where you can just glance at them. Pick a vault once
-on your phone and your glasses open straight into it — no menus to dig through, no phone
-in your hand.
+Gbsidian puts your Obsidian notes where you can just glance at them. Pick a vault once on your phone and your glasses open straight into it — no phone in your hand.
 
 What you can do, hands-free, on the glasses:
-• Glance: open to a clean, readable view. Your Obsidian Tasks and Dataview (LIST/TASK)
-  query blocks render as live results — handy for a quick "what's due today." Common task
-  dashboards built with dataviewjs render too; other dataviewjs blocks show a placeholder.
-• Browse and read: move through your vault's folder tree and read notes rendered to clean
-  lines, with Obsidian markdown flattened (wikilinks, callouts, tasks, tables, headings).
-• Search: find a note by full text, filename, or tag.
-• Capture by voice: speak a thought into today's daily note (or an inbox) without reaching
-  for anything. Reading a note? Speak to append to it. Or just type on the phone instead.
+• Jump in: open today's daily note, recently modified notes, your Bookmarks, or what's due across the vault — in two taps.
+• Glance: your Obsidian Tasks and Dataview (LIST/TASK) query blocks render as live results. Common task dashboards built with dataviewjs render too; other dataviewjs blocks show a placeholder.
+• Browse and read: move through your folder tree and read notes rendered to clean lines (wikilinks, callouts, tasks, tables, headings, embedded notes). Tap to follow a [[link]] or jump to a heading; double-tap walks back.
+• Search: find a note by full text, filename, alias, or #tag.
+• Capture by voice: speak a thought into today's daily note, an inbox, or the note you're reading — swipe to pick where it goes, check the preview, save. Or just type on the phone instead.
 
-Gestures: tap = open/capture, double-tap = back, swipe = scroll.
+Gestures: tap = open, double-tap = back, swipe = move/scroll. Tap then hold opens a menu: Quick capture, Search this vault, or Vault home — from any screen.
 
-Private by design: a small backend runs on YOUR own computer and reads your Obsidian vault
-files directly. It is loopback-bound, token-required, and reachable only over your own
-Tailscale network. There is no central or third-party server, no accounts, and no
-analytics. The developer collects nothing, and your notes never leave your machine.
+Private by design: a small backend on YOUR own computer reads your vault files directly — loopback-bound, token-required, reachable only over your own Tailscale network. No central server, no accounts, no analytics; the developer collects nothing and your notes never leave your machine.
 
-Voice is optional. It needs an OpenAI Whisper API key on your own backend. If voice is
-enabled, the dictated audio is sent to OpenAI for transcription (see the privacy policy).
-Without a key, you simply type on the phone and nothing is sent anywhere but your own
-backend.
+Voice is optional: it needs an OpenAI Whisper key on your backend, and dictated audio then goes to OpenAI for transcription. Without a key, you type on the phone and nothing leaves your own backend.
 
-Requires a one-time, self-hosted backend setup — clone https://github.com/liyiyuian/g2sidian
-and run ./install.sh (needs your Obsidian vault folder + Tailscale; an OpenAI Whisper API key
-only if you want voice). Gbsidian is an independent
-app: not affiliated with Obsidian, no desktop Obsidian plugin required, no cloud sync, and
-no multi-user server.
+Requires the Even Realities app 2.2.10 or later and a one-time, self-hosted backend setup — clone https://github.com/liyiyuian/g2sidian and run ./install.sh (needs your Obsidian vault folder + Tailscale). Gbsidian is an independent app: not affiliated with Obsidian, no Obsidian plugin required, no cloud sync, no multi-user server.
 
 
 CATEGORY

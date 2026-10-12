@@ -129,7 +129,7 @@ def _index(root):
     if cached and cached["sig"] == sig:
         return cached
     notes, tasks = [], []
-    for rel, _, _ in sig:
+    for rel, mt, _ in sig:
         full = os.path.join(root, rel)
         try:
             with open(full, encoding="utf-8", errors="replace") as f:
@@ -137,7 +137,7 @@ def _index(root):
         except OSError:
             continue
         title = os.path.basename(rel)[:-3]
-        notes.append({"path": rel, "title": title, "tags": _note_tags(text)})
+        notes.append({"path": rel, "title": title, "tags": _note_tags(text), "mtime": mt})
         for line in text.split("\n"):
             if "[" in line and "]" in line:
                 t = parse_task(line, rel)
@@ -145,6 +145,83 @@ def _index(root):
                     tasks.append(t)
     _CACHE[root] = {"sig": sig, "notes": notes, "tasks": tasks}
     return _CACHE[root]
+
+
+# ---- read-side helpers for g2sidian_api (recent / tag search / link resolution / due tasks) ----
+# All reuse the mtime-cached _index, so they're cheap on repeat calls within an unchanged vault.
+
+def build_index(root):
+    """Public handle on the cached index (so a caller can resolve many links against one build)."""
+    return _index(root)
+
+
+def _to_secs(ns):
+    # ns overflows JS number precision; seconds (float) is safe and all the client needs (age display).
+    return round((ns or 0) / 1e9, 3)
+
+
+def recent(root, limit=30):
+    """Notes by most-recently-modified, newest first."""
+    idx = _index(root)
+    ns = sorted(idx["notes"], key=lambda n: -n.get("mtime", 0))[:max(1, limit)]
+    return [{"path": n["path"], "title": n["title"], "mtime": _to_secs(n.get("mtime", 0))} for n in ns]
+
+
+def notes_with_tag(root, tag, limit=100):
+    """Notes carrying `tag` (frontmatter OR inline), newest first — finds YAML-only tags that a
+    substring content scan misses, and never false-matches #proj against #projectalpha."""
+    tag = (tag or "").strip().lower().lstrip("#")
+    if not tag:
+        return []
+    idx = _index(root)
+    out = [n for n in idx["notes"]
+           if any(t.lower() == tag or t.lower().startswith(tag + "/") for t in n["tags"])]
+    out.sort(key=lambda n: -n.get("mtime", 0))
+    return [{"path": n["path"], "title": n["title"], "mtime": _to_secs(n.get("mtime", 0))} for n in out[:limit]]
+
+
+def resolve(idx, target, from_path=""):
+    """Resolve a wikilink target to a vault-relative note path, or None (unresolved). Obsidian-ish:
+    an explicit path / *.md wins; otherwise a basename match, preferring the SAME folder as the
+    source note, then the shortest path. Pass a prebuilt `idx` so many links share one index build."""
+    t = (target or "").strip()
+    if not t:
+        return None
+    tl = t.lower()
+    if "/" in t or tl.endswith(".md"):
+        cand = (t if tl.endswith(".md") else t + ".md").lower()
+        for n in idx["notes"]:
+            pl = n["path"].lower()
+            if pl == cand or pl.endswith("/" + cand):
+                return n["path"]
+        return None
+    matches = [n for n in idx["notes"] if n["title"].lower() == tl]
+    if not matches:
+        return None
+    if len(matches) > 1:
+        from_dir = os.path.dirname(from_path)
+        same = [n for n in matches if os.path.dirname(n["path"]) == from_dir]
+        if same:
+            return same[0]["path"]
+        return min(matches, key=lambda n: len(n["path"]))["path"]
+    return matches[0]["path"]
+
+
+def due_tasks(root, today=None, limit=100):
+    """Not-done tasks whose due/scheduled date is on or before `today` (overdue + today), soonest
+    first. desc is inline-cleaned; each carries its source note path so the glasses can open it."""
+    today = today or datetime.now().date()
+    idx = _index(root)
+    hits = []
+    for t in idx["tasks"]:
+        if t["done"]:
+            continue
+        d = t["due"] or t["scheduled"]
+        if d and d <= today:
+            hits.append((d, t))
+    hits.sort(key=lambda dt: dt[0])
+    return [{"path": t["path"], "desc": md_flatten.inline(t["desc"]),
+             "due": d.isoformat(), "overdue": d < today} for d, t in hits[:max(1, limit)]]
 
 
 # ---- Tasks-plugin query subset -------------------------------------------

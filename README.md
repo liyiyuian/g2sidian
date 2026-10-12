@@ -23,25 +23,30 @@ no central server, no accounts, no analytics. Your notes never leave your machin
 
 ## Features
 
-- **Glance & read** — pick a vault on your phone; the glasses open straight into it. Browse the folder
-  tree and read notes rendered to clean lines (Obsidian markdown flattened: wikilinks, callouts, tasks,
-  tables, headings).
-- **Live Tasks & Dataview** — `tasks` and `dataview` (LIST/TASK) query blocks render as live results —
-  great for a "what's due today" view. Common **task dashboards built with `dataviewjs`** render too
-  (the embedded query is extracted; no JavaScript is executed). Anything outside the supported subset
-  shows a placeholder rather than a wrong answer.
-- **Search** — by full text, filename, or tag.
-- **Voice capture** — speak a thought into today's daily note (or an inbox), or append to the note
-  you're reading — hands-free. No voice key? Type on the phone instead.
+- **Land where you live** — the glasses open straight into your chosen vault. Browse the folder tree,
+  or **Jump / find** → open **today's daily note**, **recently modified**, your **Bookmarks**
+  (mirrored from `.obsidian/bookmarks.json`), or **what's due** — no phone typing.
+- **Read like a note** — notes render to clean lines (wikilinks, callouts, tasks, tables, headings,
+  `#tags` shown up top), and **embeds (`![[note]]`) expand inline**. Tap to **follow a `[[wikilink]]`**
+  or **jump by heading**; double-tap walks back the trail.
+- **Live Tasks & Dataview** — `tasks` and `dataview` (LIST/TASK) query blocks render as live results,
+  and the **Tasks due** hub lists overdue/today across the whole vault. Common **`dataviewjs` task
+  dashboards** render too (the embedded query is extracted; no JavaScript is executed). Anything
+  outside the supported subset shows a placeholder rather than a wrong answer.
+- **Search** — full text, filename, **alias**, or **`#tag`** (finds YAML-only tags a text scan misses).
+- **Voice capture** — speak (or type on the phone) into today's daily note, an inbox, or the note
+  you're reading — **swipe to choose the destination**, scroll the preview to check, then open what you
+  captured. Note open in Obsidian? One tap to **add it anyway**. No voice key? Type on the phone.
 - **Private by design** — loopback-bound, token-required, tailnet-only. The developer runs no server
   and collects nothing.
 
-3 gestures: **tap** = open / capture · **double-tap** = back · **swipe** = scroll.
+3 gestures, reassigned per screen: **tap** = open / choose · **double-tap** = back · **swipe** = move / scroll.
 
 ## Quick start
 
 You self-host Gbsidian — your notes stay on your machine. You need **Python 3.10+** and **Tailscale**
-(logged in). No build tools required — the app is one published build.
+on that computer, plus **Tailscale on your phone** (same tailnet — the glasses reach the backend
+through the phone). No build tools required — the app is one published build.
 
 1. **Backend** — clone and run the installer (sets up a `systemd --user` service and serves it
    tailnet-only over HTTPS on `:8445`, which coexists with other Tailscale-served apps):

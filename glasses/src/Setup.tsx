@@ -46,6 +46,7 @@ export function Setup({ onSave }: { onSave: () => void }) {
     } catch (e) {
       const msg = String((e as Error)?.message || e)
       setErr(/\b401\b/.test(msg) ? 'Token rejected — check your G2SIDIAN_TOKEN.'
+        : /abort/i.test(msg) ? 'Timed out — is the backend running, and is this phone on the same tailnet?'
         : "Can't reach the backend — check the URL, and that the service + `tailscale serve` are running.")
     } finally { setBusy(false) }
   }
@@ -68,10 +69,15 @@ export function Setup({ onSave }: { onSave: () => void }) {
   return (
     <div style={wrap}>
       <h2 style={{ margin: 0, fontSize: 20 }}>Gbsidian — Setup</h2>
-      <p style={{ color: '#88a895', fontSize: 13, lineHeight: 1.4 }}>
-        Run <code>install.sh</code> on the computer that holds your Obsidian vaults, then paste the config code it prints. Your notes stay on your machine.
+      <p style={{ color: '#88a895', fontSize: 13, lineHeight: 1.45 }}>
+        Set up the backend on the computer that holds your Obsidian vaults — from <b>github.com/liyiyuian/g2sidian</b> (run its <code>install.sh</code>) — then paste the config code it prints below. Your notes stay on your machine.
       </p>
-      <p style={{ color: statusColor, fontSize: 13, margin: '4px 0 0', fontWeight: 600 }}>{status}</p>
+      {!configured && (
+        <p style={{ color: '#ffb38a', fontSize: 12.5, lineHeight: 1.45, margin: '2px 0 0' }}>
+          Tailscale must also be running on <b>this phone</b>, signed into the same tailnet as that computer.
+        </p>
+      )}
+      <p style={{ color: statusColor, fontSize: 13, margin: '6px 0 0', fontWeight: 600 }}>{status}</p>
 
       {configured && !live.error && live.vaults.length > 0 && (
         <>

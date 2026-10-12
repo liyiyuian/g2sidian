@@ -29,5 +29,8 @@ if grep -rqE 'pcx_[A-Za-z0-9]|g2s_[A-Za-z0-9]{10}|sk-[A-Za-z0-9]{15}' dist; then
   echo "!! a secret leaked into the bundle — aborting"; exit 1
 fi
 
-npx @evenrealities/evenhub-cli@latest pack app.json dist -o "${NAME}-${VER}.ehpk"
+# Stamp min_app_version from the SDK this app is BUILT with, not npm's latest (which could lock out
+# users on older Even apps) — the packaging doc's --sdk-ver.
+SDK=$(python3 -c "import json;print(json.load(open('node_modules/@evenrealities/even_hub_sdk/package.json'))['version'])")
+npx @evenrealities/evenhub-cli@latest pack app.json dist -o "${NAME}-${VER}.ehpk" --sdk-ver "$SDK"
 echo "==> done: ${NAME}-${VER}.ehpk  (review-guarded; no secrets)"

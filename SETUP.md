@@ -7,7 +7,8 @@ network** (token-required, loopback-bound, tailnet-only HTTPS).
 ## What you need
 - The computer that holds your Obsidian vault(s), with **Python 3.10+** and **Tailscale**
   (installed + logged in).
-- The **Even** phone app + your G2 glasses.
+- The **Even** phone app + your G2 glasses — with **Tailscale on the phone too**, signed into the
+  **same tailnet** (the glasses reach your backend *through* the phone, so the phone must be on the tailnet).
 - (Optional) an **OpenAI API key** for voice capture (Whisper). Without it you type notes on the phone.
 
 ## 1. Set up the backend (one command)
@@ -37,12 +38,20 @@ into (switch any time, from the phone). It persists across reinstalls. Status sh
 
 ## 4. Use it (3 gestures: tap / double-tap / swipe)
 The glasses open straight into your chosen vault's folder tree.
-- **Browser** → tap a folder to descend, a note to open; row 0 = 🎤 **Quick capture** (speak/type →
-  today's daily note), row 1 = 🔍 **Search**; double-tap = up a folder; swipe = scroll.
-- **Reader** → swipe to scroll; **tap = voice-append to this note**; double-tap = back. `tasks` /
-  `dataview` query blocks (incl. common `dataviewjs` task dashboards) render as live results.
-- **Capture / Search** → speak then tap (or type on the phone); double-tap = cancel/back.
-- At the vault's **root** folder, double-tap = exit the app.
+- **Browser** → tap a folder to descend, a note to open. Action rows: **» Quick capture**,
+  **» Search this vault**, and (at the vault root) **» Jump / find**. Double-tap = up a folder
+  (or exit the app at the root); swipe = move the cursor.
+- **Jump / find** → **Read today** (opens today's daily note), **Recently modified**, **Bookmarks**
+  (from `.obsidian/bookmarks.json`), **Tasks due**, **Switch vault**. Tap to go, double-tap = back.
+- **Reader** → swipe to scroll. **Tap = menu**: follow a **[[wikilink]]**, jump to a **heading**, or
+  **add to this note** (on a plain note, tap goes straight to add). Double-tap walks back your link
+  trail, then out. `tasks` / `dataview` blocks (incl. `dataviewjs` dashboards) render live; `#tags`
+  show up top; `![[embeds]]` expand inline.
+- **Capture** → **swipe = choose where it lands** (this note / daily / inbox), then speak or type, and
+  tap when done. On the preview, **swipe scrolls** so you can see all of it; tap = save, double-tap =
+  redo. If the note changed in Obsidian mid-capture, tap once more to **add it anyway**. After saving,
+  tap = open the note you just wrote to.
+- **Search** → speak then tap, or type on the phone; in results, tap = open, double-tap = back.
 
 ---
 
@@ -59,7 +68,8 @@ G2SIDIAN_BIND=127.0.0.1
 G2SIDIAN_API_PORT=8793
 G2SIDIAN_VAULTS=[{"name":"Work","path":"~/Documents/Work"},{"name":"Personal","path":"~/Documents/personal"}]
 G2SIDIAN_CAPTURE_MODE=daily          # voice quick-capture target: daily | inbox
-G2SIDIAN_DAILY_FORMAT=%Y-%m-%d
+# G2SIDIAN_DAILY_FOLDER=Journal      # optional; if unset, auto-detected from .obsidian/daily-notes.json
+# G2SIDIAN_DAILY_FORMAT=%Y-%m-%d     # optional; if unset, auto-detected from daily-notes.json (else this)
 # G2SIDIAN_CAPTURE_VAULT=Personal    # which vault quick-capture writes to (default: first)
 # G2SIDIAN_INBOX_PATH=Inbox.md       # used when G2SIDIAN_CAPTURE_MODE=inbox
 # OPENAI_API_KEY=sk-...              # enables voice capture (or G2SIDIAN_OPENAI_KEY_PATH=~/path/to/keyfile)

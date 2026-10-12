@@ -174,6 +174,29 @@ def _inline(text):
     return text
 
 
+# outgoing [[wikilinks]] (embeds ![[...]] excluded) — for the reader's tap-to-follow jump list
+_OUTLINK_RE = re.compile(r"(?<!\!)\[\[([^\]\n]+)\]\]")
+
+
+def outgoing_links(body):
+    """Distinct outgoing [[wikilinks]] in reading order. Each -> {target, label}: target = the note
+    name without alias/#heading (for resolution); label = the alias, else the target basename."""
+    seen, out = set(), []
+    for m in _OUTLINK_RE.finditer(body):
+        inner = m.group(1)
+        head = inner.split("|", 1)
+        target = head[0].split("#", 1)[0].strip()
+        if not target:
+            continue
+        key = target.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        label = head[1].strip() if len(head) > 1 else target.rsplit("/", 1)[-1]
+        out.append({"target": target, "label": label or target})
+    return out
+
+
 # ---- line-level transforms ------------------------------------------------
 
 _FENCE_RE = re.compile(r"^\s*(```+|~~~+)(.*)$")
@@ -188,6 +211,9 @@ _BULLET_RE = re.compile(r"^(\s*)[-*+]\s+(.*)$")
 _NUM_RE = re.compile(r"^(\s*)(\d+)[.)]\s+(.*)$")
 _TABLE_SEP_RE = re.compile(r"^\s*\|?[\s:|-]+\|?\s*$")
 _TABLE_ROW_RE = re.compile(r"^\s*\|(.+)\|\s*$")
+# an OWN-LINE embed (![[note]] / ![[note#Heading]]) — expanded inline when an embed_runner is given
+_EMBED_LINE_RE = re.compile(r"^!\[\[([^\]]+)\]\]$")
+EMBED_MAX_LINES = 12  # cap an expanded embed so one ![[MOC]] can't blow the ~10-line budget
 
 # ASCII brackets, not ballot-box glyphs (☐/☑) — the G2 firmware font lacks the latter (verified
 # blank in the simulator, which mirrors the firmware's missing-glyph handling).
@@ -214,10 +240,12 @@ def _render_dynamic(kind, query, runner):
     return [f"⟨{kind} view — open in Obsidian{hint}⟩"]
 
 
-def flatten(text, query_runner=None):
-    """Return {"title":str, "tags":[...], "aliases":[...], "lines":[...]}.
+def flatten(text, query_runner=None, embed_runner=None):
+    """Return {"title":str, "tags":[...], "aliases":[...], "lines":[...], "links":[...]}.
     `lines` are logical lines (the glasses pixel-wraps each). `query_runner(kind, query_text)` (optional)
-    renders ```tasks / ```dataview blocks to lines, or returns None for a placeholder."""
+    renders ```tasks / ```dataview blocks to lines, or returns None for a placeholder. `embed_runner(inner)`
+    (optional) expands an OWN-LINE ![[note]] to that note's lines, or returns None to keep the placeholder.
+    `links` are the distinct outgoing [[wikilinks]] (for the reader's tap-to-follow jump list)."""
     fm, body = split_frontmatter(text)
     meta = parse_frontmatter(fm)
     out = []
@@ -276,6 +304,20 @@ def flatten(text, query_runner=None):
             continue
         line = _BLOCKID_RE.sub("", line)  # strip a trailing ^blockid on EVERY line type
 
+        m = _EMBED_LINE_RE.match(line)  # own-line ![[note]] -> expand it (│-quoted), else fall through
+        if m and embed_runner is not None:
+            try:
+                sub = embed_runner(m.group(1))
+            except Exception:
+                sub = None
+            if sub is not None:
+                push(f"│ {_wiki_display(m.group(1))}")
+                for el in sub[:EMBED_MAX_LINES]:
+                    push("│ " + el)
+                if len(sub) > EMBED_MAX_LINES:
+                    push(f"│ (+{len(sub) - EMBED_MAX_LINES} more — open {_wiki_display(m.group(1))})")
+                continue
+
         m = _HEADING_RE.match(line)
         if m:
             push("")
@@ -333,7 +375,8 @@ def flatten(text, query_runner=None):
             if t:
                 meta["title"] = t
                 break
-    return {"title": meta["title"], "tags": meta["tags"], "aliases": meta["aliases"], "lines": out}
+    return {"title": meta["title"], "tags": meta["tags"], "aliases": meta["aliases"], "lines": out,
+            "links": outgoing_links(body)}
 
 
 if __name__ == "__main__":

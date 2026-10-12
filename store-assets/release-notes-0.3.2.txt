@@ -1,0 +1,31 @@
+Gbsidian 0.3.2 — release notes
+==============================
+
+HUB CHANGELOG (paste into the version's changelog field)
+-------------
+New: tap then hold on the glasses opens a menu — Quick capture, Search this vault, or Vault home — from any screen.
+New: Jump / find opens today's note, recent notes, Bookmarks or Tasks due; tap a [[link]] or heading to jump, and back returns to the list you came from. These lists need the updated backend (re-run install.sh).
+Fix: a long press no longer acts as a tap (it could start a voice capture). Requires Even Realities app 2.2.10 or later.
+
+
+FULL LOG (0.3.2 includes the never-published 0.3.0 and 0.3.1)
+--------
+Glasses app
+- Contextual menu (Even SDK 0.0.14+): tap then hold opens a menu with Quick capture (voice into today's
+  daily note; double-tap back returns to the note you were reading), Search this vault, and Vault home.
+- Long-press safety: built on Even Hub SDK 0.0.16, which knows the long-press gesture, plus a guard
+  that drops any gesture the SDK can't name. On SDK 0.0.11 a long press arrived as a tap.
+- Jump / find hub: today's daily note, recently modified, Bookmarks (from .obsidian/bookmarks.json),
+  Tasks due (overdue + today across the vault), Switch vault.
+- Reader: follow a [[wikilink]] or jump to a heading; double-tap walks back the trail. Opening a note
+  from a Jump list returns to that list.
+- Capture: swipe to choose the destination (daily note / inbox / the open note), scroll the preview
+  before saving, then open what you captured; "add it anyway" if the note changed meanwhile.
+- With a backend older than 0.3.0, the Jump lists say "Update backend: re-run install.sh" instead of
+  a raw error.
+- Requires Even Realities app 2.2.10 or later (Even Hub SDK 0.0.16).
+
+Backend (update with: git pull && ./install.sh, or re-run the install one-liner)
+- New endpoints: /api/recent, /api/bookmarks, /api/tasks/due.
+- Notes show #tags up top and expand ![[embeds]] inline; search matches aliases and YAML-only #tags.
+- Daily-note capture follows Obsidian's daily-notes settings (.obsidian/daily-notes.json).
