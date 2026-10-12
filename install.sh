@@ -52,14 +52,18 @@ done
 ok "backend in $INSTALL_DIR"
 
 # 3) token (reuse existing if present) ---------------------------------------
-TOKEN=""
-[ -f "$ENV_FILE" ] && TOKEN=$(sed -n 's/^G2SIDIAN_TOKEN=//p' "$ENV_FILE" | head -1)
+# A re-run is how users UPGRADE, so everything already in the env file is kept unless overridden.
+old(){ [ -f "$ENV_FILE" ] && sed -n "s/^$1=//p" "$ENV_FILE" | head -1 || true; }
+[ -z "${G2SIDIAN_API_PORT:-}" ] && [ -n "$(old G2SIDIAN_API_PORT)" ] && PORT=$(old G2SIDIAN_API_PORT)
+TOKEN=$(old G2SIDIAN_TOKEN)
 if [ -z "$TOKEN" ]; then TOKEN="g2s_$(python3 -c 'import secrets;print(secrets.token_urlsafe(24))')"; ok "generated a new access token"
 else ok "reusing existing access token"; fi
 
 # 4) discover Obsidian vaults (.obsidian dir => its parent is a vault) --------
 if [ -n "${G2SIDIAN_VAULTS_OVERRIDE:-}" ]; then
   VAULTS_JSON="$G2SIDIAN_VAULTS_OVERRIDE"
+elif [ -n "$(old G2SIDIAN_VAULTS)" ]; then
+  VAULTS_JSON=$(old G2SIDIAN_VAULTS); ok "keeping your vaults (edit G2SIDIAN_VAULTS in $ENV_FILE to change them)"
 else
   mapfile -t FOUND < <(find "$HOME/Documents" "$HOME/Obsidian" "$HOME" -maxdepth 4 -type d -name .obsidian 2>/dev/null \
     | sed 's#/\.obsidian$##' | sort -u)
@@ -80,6 +84,7 @@ fi
 
 # 5) OpenAI key (OPTIONAL) — enables VOICE capture; without it you type on your phone --------
 if [ "${G2SIDIAN_OPENAI_KEY+set}" = set ]; then OPENAI_KEY="$G2SIDIAN_OPENAI_KEY"
+elif [ -n "$(old OPENAI_API_KEY)" ]; then OPENAI_KEY=$(old OPENAI_API_KEY); ok "keeping your OpenAI key"
 elif [ -r /dev/tty ]; then
   printf 'OpenAI API key (optional) — enables VOICE capture via Whisper; without it you type on your phone. Paste it, or Enter to skip: '
   read -r OPENAI_KEY </dev/tty || OPENAI_KEY=""
@@ -87,18 +92,24 @@ else OPENAI_KEY=""; fi
 [ -n "$OPENAI_KEY" ] && ok "voice capture enabled" || warn "no OpenAI key — voice off; you'll type notes on your phone (re-run later to add voice)."
 
 # 6) write env file (chmod 600) ---------------------------------------------
-mkdir -p "$(dirname "$ENV_FILE")"; umask 177
+# The installer's own keys first, then every other line already in the file (your additions, e.g.
+# G2SIDIAN_CAPTURE_VAULT / G2SIDIAN_OPENAI_KEY_PATH) unchanged — except the date format older
+# installers always wrote: without it, daily notes follow Obsidian's own daily-notes setting.
+mkdir -p "$(dirname "$ENV_FILE")"
+KEEP=$( [ -f "$ENV_FILE" ] && grep -vE '^(G2SIDIAN_TOKEN|G2SIDIAN_BIND|G2SIDIAN_API_PORT|G2SIDIAN_VAULTS|G2SIDIAN_CAPTURE_MODE|OPENAI_API_KEY)=' "$ENV_FILE" \
+  | grep -vxF 'G2SIDIAN_DAILY_FORMAT=%Y-%m-%d' || true )
+umask 177
 {
   echo "G2SIDIAN_TOKEN=$TOKEN"
   echo "G2SIDIAN_BIND=127.0.0.1"
   echo "G2SIDIAN_API_PORT=$PORT"
   echo "G2SIDIAN_VAULTS=$VAULTS_JSON"
-  echo "G2SIDIAN_CAPTURE_MODE=daily"   # voice quick-capture target: daily | inbox
-  echo "G2SIDIAN_DAILY_FORMAT=%Y-%m-%d"
-  # G2SIDIAN_CAPTURE_VAULT=<name>      # which vault quick-capture writes to (default: first)
-  # G2SIDIAN_INBOX_PATH=Inbox.md       # used when G2SIDIAN_CAPTURE_MODE=inbox
+  echo "G2SIDIAN_CAPTURE_MODE=$(old G2SIDIAN_CAPTURE_MODE | grep -xE 'daily|inbox' || echo daily)"   # voice quick-capture target
   [ -n "$OPENAI_KEY" ] && echo "OPENAI_API_KEY=$OPENAI_KEY"
-} > "$ENV_FILE"
+  [ -n "$KEEP" ] && printf '%s\n' "$KEEP"
+  true
+} > "$ENV_FILE.new"
+mv "$ENV_FILE.new" "$ENV_FILE"
 umask 022; chmod 600 "$ENV_FILE"
 ok "wrote $ENV_FILE"
 
@@ -122,7 +133,8 @@ WantedBy=default.target
 UNIT
 ok "wrote service unit"
 run systemctl --user daemon-reload
-run systemctl --user enable --now g2sidian.service
+run systemctl --user enable g2sidian.service
+run systemctl --user restart g2sidian.service   # restart, not just start: a re-run upgrades a RUNNING backend
 [ "$DRY" = 1 ] || warn "to keep it running after logout: sudo loginctl enable-linger $USER"
 
 # 8) expose on the tailnet over HTTPS on :8445 (coexists with other Tailscale-served apps that
