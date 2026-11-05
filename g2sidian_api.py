@@ -151,8 +151,13 @@ def list_dir(root, rel):
         elif _is_note(name):
             entries.append({"name": name[:-3], "file": name, "type": "note",
                             "mtime": st.st_mtime_ns, "size": st.st_size})
-    # dirs first, then notes; each alphabetical (case-insensitive)
-    entries.sort(key=lambda e: (e["type"] != "dir", e["name"].lower()))
+    # dirs first (alphabetical), then notes — name sort (upstream default) or
+    # mtime sort (G2SIDIAN_SORT_NOTES=mtime) so a long-running folder like a
+    # daily-briefings lane lists newest-first without paging.
+    if os.environ.get("G2SIDIAN_SORT_NOTES", "name").strip().lower() == "mtime":
+        entries.sort(key=lambda e: (e["type"] != "dir", -e.get("mtime", 0), e["name"].lower()))
+    else:
+        entries.sort(key=lambda e: (e["type"] != "dir", e["name"].lower()))
     parent = "" if not rel.strip("/") else os.path.dirname(rel.strip("/"))
     return {"path": rel.strip("/"), "parent": parent, "entries": entries}
 
