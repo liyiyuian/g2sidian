@@ -1,0 +1,33 @@
+# Gbsidian backend via Docker.
+#
+#   cp .env.example .env          # set token + vault paths (chmod 600)
+#   docker compose up -d --build  # named service only
+#
+# The published port is bound to 127.0.0.1 — the backend is NOT reachable from
+# the network as-is. Expose it tailnet-only the same way install.sh does:
+#
+#   sudo tailscale set --operator=$USER
+#   sudo tailscale serve --bg --https=8445 8793
+#
+# The app's network whitelist matches https://*.ts.net:8445, so that serve line
+# is what makes the published Hub build connect.
+services:
+  g2sidian:
+    build: .
+    image: g2sidian:latest
+    container_name: g2sidian
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Bind inside the container is always 0.0.0.0; the HOST-side publish
+      # below is the exposure control.
+      G2SIDIAN_BIND: 0.0.0.0
+    ports:
+      - "127.0.0.1:8793:8793"
+    volumes:
+      # One line per vault you expose. The path in G2SIDIAN_VAULTS (.env)
+      # must match the mount point you choose here. Read-only by default;
+      # drop the ":ro" if you use voice capture or "add to this note" —
+      # the API still jails writes to the vault root and appends atomically.
+      - ${G2SIDIAN_VAULT_DIR:?set G2SIDIAN_VAULT_DIR in .env}:/vaults/vault:ro
