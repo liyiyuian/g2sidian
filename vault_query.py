@@ -287,6 +287,11 @@ def _date_clause(field, rest, task, today):
     return None
 
 
+# Tasks-plugin priority order: no priority ('none') sits between medium and low
+_PRIO_RANK = {"lowest": 0, "low": 1, "none": 2, "medium": 3, "high": 4, "highest": 5}
+_PRIO_RE = re.compile(r"^priority is (?:(above|below|not) )?(lowest|low|none|medium|high|highest)$")
+
+
 def _eval_clause(clause, task, today):
     c = _strip_parens(clause).strip().lower()
     if c in ("done",):
@@ -295,12 +300,18 @@ def _eval_clause(clause, task, today):
         return not task["done"]
     for f in ("due", "scheduled", "starts", "start", "happens"):
         field = "start" if f == "starts" else f
+        # 'happens' = any of due/scheduled/start (a task has no 'happens' key of its own)
+        keys = ("due", "scheduled", "start") if field == "happens" else (field,)
+        has = any(task[k] is not None for k in keys)
         if c == "has " + f.rstrip("s") + " date" or c == "has " + f + " date":
-            return task.get(field) is not None
+            return has
         if c == "no " + f.rstrip("s") + " date" or c == "no " + f + " date":
-            return task.get(field) is None
+            return not has
         if c.startswith(f + " "):
-            return _date_clause(field if field != "starts" else "start", c[len(f) + 1:], task, today)
+            r = _date_clause(field, c[len(f) + 1:], task, today)
+            if r is False and field == "start" and task["start"] is None:
+                return True  # Tasks: a start-date filter also matches tasks with no start date
+            return r
     for verb, neg in (("path includes ", False), ("path does not include ", True)):
         if c.startswith(verb):
             hit = c[len(verb):].strip() in task["path"].lower()
@@ -313,8 +324,15 @@ def _eval_clause(clause, task, today):
         if c.startswith(verb):
             q = c[len(verb):].strip().lstrip("#")
             return any(t.lower() == q or t.lower().startswith(q + "/") for t in task["tags"])
-    if c.startswith("priority is "):
-        return task["priority"] == c[len("priority is "):].strip()
+    m = _PRIO_RE.match(c)
+    if m:
+        have, want = _PRIO_RANK[task["priority"] or "none"], _PRIO_RANK[m.group(2)]
+        op = m.group(1)
+        if op == "above":
+            return have > want
+        if op == "below":
+            return have < want
+        return have != want if op == "not" else have == want
     return None  # unrecognized -> unsupported
 
 
@@ -350,6 +368,8 @@ def _translate_fn_filter(expr):
 
 
 def _run_tasks(root, text, today):
+    if "{{" in text:
+        return None  # {{query.file.*}} placeholders need the querying note's path -> placeholder
     filters, short, limit, sort_field, sort_rev = [], False, None, None, False
     for raw in text.split("\n"):
         line = raw.strip()
@@ -393,7 +413,9 @@ def _run_tasks(root, text, today):
                 break
         if ok:
             out.append(t)
-    if sort_field:
+    if sort_field == "priority":  # by rank, highest first (not by name)
+        out.sort(key=lambda t: -_PRIO_RANK[t["priority"] or "none"], reverse=sort_rev)
+    elif sort_field:
         out.sort(key=lambda t: (t.get(sort_field) is None, t.get(sort_field) or ""), reverse=sort_rev)
     else:  # default: overdue/soonest first by due then scheduled
         out.sort(key=lambda t: (t["due"] is None and t["scheduled"] is None,
