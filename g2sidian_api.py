@@ -505,12 +505,16 @@ def wav_seconds(audio):
     return 0.0
 
 
+# ~/.env and the shell rc/profile files also hold other tools' secrets (OpenRouter, DeepSeek, ... keys
+# are sk-... too), so only an explicit OPENAI_API_KEY=... counts there, never a bare sk-... token.
+_SHARED_KEY_FILES = ("~/.env", "~/.bashrc", "~/.bash_profile", "~/.profile",
+                     "~/.zshrc", "~/.zprofile", "~/.bash_aliases")
+
+
 def _openai_key_files(path_override=None):
     # Searched in order: the phone-supplied path (authed only) -> a server env var -> ~/.env and the
     # common shell rc/profile files (where an `export OPENAI_API_KEY=...` usually lives) -> dedicated key files.
-    return [p for p in (path_override, os.environ.get("G2SIDIAN_OPENAI_KEY_PATH"),
-                        "~/.env", "~/.bashrc", "~/.bash_profile", "~/.profile",
-                        "~/.zshrc", "~/.zprofile", "~/.bash_aliases",
+    return [p for p in (path_override, os.environ.get("G2SIDIAN_OPENAI_KEY_PATH"), *_SHARED_KEY_FILES,
                         "~/.openai", "~/.config/openai/key", "~/.config/openai.env") if p]
 
 
@@ -520,18 +524,20 @@ def openai_key_checked(path_override=None):
 
 def openai_key(path_override=None):
     """Find the OpenAI key on this machine WITHOUT it ever touching the phone. Excludes
-    Anthropic keys (sk-ant-)."""
+    Anthropic keys (sk-ant-). A bare sk-... counts only in a file meant for the key, not in ~/.env or an rc file."""
     k = os.environ.get("OPENAI_API_KEY", "")
     if k.startswith("sk-") and not k.startswith("sk-ant-"):
         return k
+    explicit = (path_override, os.environ.get("G2SIDIAN_OPENAI_KEY_PATH"))  # paths given for the key itself
     for p in _openai_key_files(path_override):
         try:
             with open(os.path.expanduser(p)) as f:
                 txt = f.read()
         except OSError:
             continue
-        m = re.search(r"OPENAI_API_KEY\s*[=:]\s*['\"]?(sk-[A-Za-z0-9_\-]{20,})", txt) \
-            or re.search(r"(?<![A-Za-z0-9])(sk-(?!ant-)[A-Za-z0-9_\-]{20,})", txt)
+        m = re.search(r"OPENAI_API_KEY\s*[=:]\s*['\"]?(sk-[A-Za-z0-9_\-]{20,})", txt)
+        if not m and (p in explicit or p not in _SHARED_KEY_FILES):
+            m = re.search(r"(?<![A-Za-z0-9])(sk-(?!ant-)[A-Za-z0-9_\-]{20,})", txt)
         if m:
             return m.group(1)
     return ""
@@ -539,7 +545,7 @@ def openai_key(path_override=None):
 
 def whisper_transcribe(audio, key):
     if not key.startswith("sk-"):
-        raise RuntimeError("no OpenAI API key found (set OPENAI_API_KEY, put it in ~/.env, or set a key-file path in Setup)")
+        raise RuntimeError("no OpenAI API key found (set OPENAI_API_KEY, put OPENAI_API_KEY=sk-... in ~/.env, or set a key-file path in Setup)")
     boundary = "----g2sidian-" + str(int(time.time() * 1000))
     crlf = b"\r\n"
     bb = boundary.encode()
