@@ -40,7 +40,7 @@ def split_frontmatter(text):
 
 # `.*` (not `.+`) so a bare `tags:` with the list on the following `  - item` lines still matches
 # (block-list form is the most common Obsidian tag style)
-_TAGS_INLINE_RE = re.compile(r"^(tags|aliases|alias)\s*:\s*(.*)$", re.I)
+_TAGS_INLINE_RE = re.compile(r"^(tags|tag|aliases|alias)\s*:\s*(.*)$", re.I)
 _TITLE_RE = re.compile(r"^(title|name)\s*:\s*(.+)$", re.I)
 _LIST_ITEM_RE = re.compile(r"^\s*-\s*(.+)$")
 

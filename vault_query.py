@@ -14,7 +14,7 @@ import os
 import re
 from datetime import datetime, date, timedelta
 
-import md_flatten  # for inline-markup cleaning of rendered task descriptions (no cycle: md_flatten imports neither)
+import md_flatten  # inline-markup cleaning of task descriptions + frontmatter tags (no cycle: md_flatten imports neither)
 
 # ---- Tasks-plugin emoji metadata -----------------------------------------
 DUE, SCHED, START, DONE_E, CREATED, CANCELLED = "📅", "⏳", "🛫", "✅", "➕", "❌"
@@ -66,34 +66,12 @@ def parse_task(raw, path):
 
 
 # ---- frontmatter tags (shallow) ------------------------------------------
-_FM_RE = re.compile(r"^---\r?\n(.*?)\r?\n---", re.S)
-_FM_TAGS_RE = re.compile(r"^(tags|tag)\s*:\s*(.*)$", re.I | re.M)
-
+# Same line-based parser as the reader header, so a block-list `tags:` yields every item and
+# stops at the next key (search, Dataview FROM #tag and the header agree).
 
 def _note_tags(text):
-    tags = set()
-    fm = _FM_RE.match(text)
-    if fm:
-        block = fm.group(1)
-        for mt in _FM_TAGS_RE.finditer(block):
-            val = mt.group(2).strip()
-            if val.startswith("[") and val.endswith("]"):
-                val = val[1:-1]
-            if val:
-                for part in re.split(r"[,\s]+", val):
-                    p = part.strip().strip("\"'").lstrip("#")
-                    if p:
-                        tags.add(p)
-            else:  # block list on following "  - tag" lines
-                after = block[mt.end():]
-                for lm in re.finditer(r"^\s*-\s*(.+)$", after, re.M):
-                    if lm.group(1).strip():
-                        tags.add(lm.group(1).strip().strip("\"'").lstrip("#"))
-                    else:
-                        break
-        body = text[fm.end():]
-    else:
-        body = text
+    fm, body = md_flatten.split_frontmatter(text)
+    tags = set(md_flatten.parse_frontmatter(fm)["tags"])
     tags |= set(_TAG_RE.findall(body))
     return tags
 
